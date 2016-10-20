@@ -1,0 +1,12 @@
+# Ignora todos los siguientes ficheros
+*.dev
+*.exe
+*.layout
+*.o
+*.win
+*.vpj
+*.vpw
+*.vpwhist
+*.vtg
+log.txt
+Debug
