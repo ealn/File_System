@@ -18,7 +18,7 @@
 //#define UNIX
 
 //Constants
-#define STDIN_BUF_SIZE          256
+#define STDIN_BUF_SIZE          4096
 
 void cleanScreen(void)
 {
@@ -262,10 +262,6 @@ uint8_t createMenuWithMultipleOptions(const char * title,
         if (footer != NULL)
         {
             optionSelected = getUint8FromConsole(footer); 
-        }
-        else
-        {
-            optionSelected = getUint8FromConsole(" ");
         }
 
         if (needValidateInput)

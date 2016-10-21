@@ -11,6 +11,7 @@
 #include "file_pool.h"
 #include "memutils.h"
 #include "trace.h"
+#include "file.h"
 
 //Structs
 struct _FilePool
@@ -21,7 +22,7 @@ struct _FilePool
 };
 
 FilePool * g_filePool = NULL;
-FilePool * g_currentPool = NULL;
+FilePool * g_lastPool = NULL;
 
 //Defines
 
@@ -58,16 +59,16 @@ static int32_t createNewEntryIntoFilePool(void)
     FilePool * pNewFilePool = NULL;
 
     if (g_filePool != NULL
-        && g_currentPool != NULL)
+        && g_lastPool != NULL)
     {
         pNewFilePool = allocFilePool();
 
         if (pNewFilePool != NULL)
         {
-            g_currentPool->next = pNewFilePool;
-            pNewFilePool->prev = g_currentPool;
+            g_lastPool->next = pNewFilePool;
+            pNewFilePool->prev = g_lastPool;
 
-            g_currentPool = pNewFilePool;
+            g_lastPool = pNewFilePool;
         }
         else
         {
@@ -102,7 +103,7 @@ int32_t createFilePool(void)
 
         if (g_filePool != NULL)
         {
-            g_currentPool = g_filePool;
+            g_lastPool = g_filePool;
         }
         else 
         {
@@ -123,13 +124,21 @@ void destroyFilePool(void)
 {
     if (g_filePool != NULL)
     {
-        FilePool * pFilePool;
-        FilePool * pNextFilePool;
+        FilePool * pFilePool = NULL;
 
-        pFilePool = g_filePool;
-        pNextFilePool = pFilePool->next;
-        //TODO
+        while (g_lastPool != NULL)
+        {
+            pFilePool = g_lastPool->prev;
 
+            if (g_lastPool->pFile != NULL)
+            {
+                destroyFile(g_lastPool->pFile);
+            }
+
+            freeFilePool(g_lastPool);
+
+            g_lastPool = pFilePool;
+        }
     }
 }
 
@@ -139,11 +148,11 @@ int32_t insertFileIntoPool(File * pFile)
 
     if (pFile != NULL)
     {
-        if (g_currentPool != NULL)
+        if (g_lastPool != NULL)
         {
-            if (isEmptySlot(g_currentPool))
+            if (isEmptySlot(g_lastPool))
             {
-                g_currentPool->pFile = pFile;
+                g_lastPool->pFile = pFile;
             }
             else
             {
@@ -151,8 +160,78 @@ int32_t insertFileIntoPool(File * pFile)
 
                 if (ret == SUCCESS)
                 {
-                    g_currentPool->pFile = pFile;
+                    g_lastPool->pFile = pFile;
                 }
+            }
+        }
+        else
+        {
+            FILE_POOL_ERROR("Last pool is null\n");
+        }
+    }
+    else
+    {
+        FILE_POOL_ERROR("File is null\n");
+        ret = FAIL;
+    }
+
+    return ret; 
+}
+
+int32_t removeFileIntoPool(File * pFile)
+{
+    int32_t ret = SUCCESS;
+
+    if (pFile != NULL)
+    {
+        if (g_lastPool != NULL)
+        {
+            FilePool * pFilePool = NULL;
+            FilePool * pPrev = NULL;
+            FilePool * pNext = NULL;
+
+            pFilePool = g_filePool;
+
+            while (pFilePool != NULL)
+            {
+                if (pFilePool->pFile == pFile)
+                {
+                    if (pFilePool == g_filePool)
+                    {
+                        destroyFile(pFilePool->pFile);
+                        pFilePool->pFile = NULL;
+                    }
+                    else
+                    {
+                        pPrev = pFilePool->prev;
+                        pNext = pFilePool->next;
+
+                        if (pNext != NULL)
+                        {
+                            pNext->prev = pPrev;
+                        }
+                        if (pPrev != NULL) 
+                        {
+                            pPrev->next = pNext;
+
+                            if (pFilePool == g_lastPool)
+                            {
+                                g_lastPool = pPrev;
+                            }
+                        }
+
+                        destroyFile(pFilePool->pFile); 
+                        freeFilePool(pFilePool);
+                    }
+
+                    break;
+                }
+                else
+                {
+                    ret = FILE_NOT_FOUND;
+                }
+
+                pFilePool = pFilePool->next;
             }
         }
         else
@@ -163,6 +242,50 @@ int32_t insertFileIntoPool(File * pFile)
     else
     {
         FILE_POOL_ERROR("File is null\n");
+        ret = FAIL;
+    }
+
+    return ret; 
+}
+
+int32_t searchFileIntoPool(char *pName, File **ppOutputFile)
+{
+    int32_t ret = SUCCESS;
+
+    if (pName != NULL
+        && ppOutputFile != NULL)
+    {
+        if (g_filePool != NULL)
+        {
+            FilePool * pFilePool = NULL;
+
+            pFilePool = g_filePool;
+
+            while (pFilePool != NULL)
+            {
+                if (pFilePool->pFile != NULL
+                    && (strcmp(getFileName(pFilePool->pFile), pName) == 0))
+                {
+                    *ppOutputFile = pFilePool->pFile;
+                    ret = SUCCESS;
+                    break;
+                }
+                else
+                {
+                    ret = FILE_NOT_FOUND;
+                }
+
+                pFilePool = pFilePool->next;
+            }
+        }
+        else
+        {
+            FILE_POOL_ERROR("File pool is null\n");
+        }
+    }
+    else
+    {
+        FILE_POOL_ERROR("Name is null or output file is null\n");
         ret = FAIL;
     }
 

@@ -16,6 +16,8 @@ extern "C" {
 int32_t createFilePool(void);
 void destroyFilePool(void);
 int32_t insertFileIntoPool(File * pFile);
+int32_t removeFileIntoPool(File * pFile);
+int32_t searchFileIntoPool(char *pName, File **ppOutputFile);
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

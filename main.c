@@ -26,7 +26,7 @@ int32_t main(void)
     
     if (ret == SUCCESS)
     {
-        //ret = showUI();
+        ret = showUI();
         destroyFilePool();
     }
     else
