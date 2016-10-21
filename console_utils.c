@@ -227,6 +227,15 @@ bool repeatAction(const char *str)
     return repeat;
 }
 
+bool getYesOrNotFromConsole(const char *consoleStr)
+{
+    bool ret = false;
+
+    ret = repeatAction(consoleStr);
+
+    return ret;
+}
+
 uint8_t createMenuWithMultipleOptions(const char * title,
                                       const char * header,
                                       const char * options,

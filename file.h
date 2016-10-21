@@ -24,6 +24,9 @@ int32_t tellFile(char *pName, uint32_t *output);
 int32_t seekFile(char *pName, uint32_t newPoint);
 void destroyFile(File * pFile);
 char * getFileName(File *pFile);
+void printFileInfo(File *pFile, bool showData);
+int32_t printFile(char *pName, bool showData);
+int32_t printAllFiles(bool showData);
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

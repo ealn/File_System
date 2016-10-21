@@ -13,6 +13,7 @@
 #include "file_pool.h"
 #include "memutils.h"
 #include "trace.h"
+#include "UI.h"
 
 #define CHUNK_SIZE    512
 //Structs
@@ -20,6 +21,7 @@ struct _File
 {
     char *   name;
     char *   data;
+    char     date[TIME_BUF_SIZE];
     uint32_t size;
     uint32_t w_point;      //write point
     uint32_t r_point;      //read point
@@ -87,6 +89,8 @@ static File * createFile(char *pName)
             newFile->size = CHUNK_SIZE;
 
             memcpy(newFile->name, pName, nameSize);
+
+            getTimeStamp(newFile->date);
         }
     }
     
@@ -133,6 +137,21 @@ char * getFileName(File *pFile)
     }
 
     return fileName;
+}
+
+void printFileInfo(File *pFile, bool showData)
+{
+    if (pFile != NULL)
+    {
+        showFileInfo(pFile->name,
+                     pFile->data,
+                     pFile->date,
+                     pFile->size,
+                     pFile->w_point,
+                     pFile->r_point,
+                     pFile->is_opened,
+                     showData);
+    }
 }
 
 //Entry points
@@ -384,4 +403,34 @@ int32_t seekFile(char *pName, uint32_t newPoint)
     }
 
     return ret; 
+}
+
+int32_t printFile(char *pName, bool showData)
+{
+    int32_t ret = SUCCESS;
+    File   *pFile = NULL;
+
+    if (pName != NULL)
+    {
+        ret = searchFileIntoPool(pName, &pFile);
+
+        if (pFile != NULL)
+        {
+            printFileInfo(pFile, showData);
+        }
+    }
+    else
+    {
+        FILE_ERROR("Name is null\n");
+        ret = FAIL;
+    }
+}
+
+int32_t printAllFiles(bool showData)
+{
+    int32_t ret = SUCCESS;
+
+    ret = printAllFilesIntoPool(showData);
+
+    return ret;
 }

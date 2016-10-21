@@ -13,6 +13,8 @@
 extern "C" {
 #endif
 
+#define TIME_BUF_SIZE       20
+
 #define MEM_COMP        "MEMORY  -"
 #define FILE_COMP       "FILE -"
 #define FILE_POOL_COMP  "FILE_POOL -"
@@ -24,6 +26,7 @@ void traceDataWarning(const char *pComponent, const char *pCaller, const char *p
 void traceDataDebug(const char *pComponent, const char *pCaller, const char *pParm, ...);
 void initTrace(void);
 void termTrace(void);
+void getTimeStamp(char * pOutputTime);
 
 //Macros:
 #define MEM_ERROR(...)            traceDataError(MEM_COMP, __func__, __VA_ARGS__)

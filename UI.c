@@ -25,7 +25,9 @@
 #define READ_FILE             6
 #define TELL_FILE             7
 #define SEEK_FILE             8
-#define EXIT                  9
+#define PRINT_FILE            9
+#define PRINT_ALL_FILES       10
+#define EXIT                  11
 
 #define WRITE_BUF_SIZE        2048
 #define READ_BUF_SIZE         2048
@@ -41,6 +43,8 @@ static int32_t showWriteFileMenu(void);
 static int32_t showReadFileMenu(void);
 static int32_t showTellFileMenu(void);
 static int32_t showSeekFileMenu(void);
+static int32_t showPrintFileMenu(void);
+static int32_t showPrintAllFilesMenu(void);
 
 int32_t showUI(void)
 {
@@ -78,6 +82,10 @@ int32_t showUI(void)
             case TELL_FILE: ret = showTellFileMenu();
                 break;
             case SEEK_FILE: ret = showSeekFileMenu();
+                break;
+            case PRINT_FILE: ret = showPrintFileMenu();
+                break;
+            case PRINT_ALL_FILES: ret = showPrintAllFilesMenu();
                 break;
             default: break;
         }
@@ -136,6 +144,8 @@ static void printOutput(int32_t ret)
             break;
         case FILE_IS_ALREADY_CLOSED:  printf(STR_FILE_IS_ALREADY_CLOSED);
             break;
+        case THERE_ARE_NOT_FILES:     printf(STR_THERE_ARE_NOT_FILES);
+            break;
         default:
             break;
     }
@@ -148,7 +158,7 @@ static int32_t showCreateFileMenu(void)
 
     memset(fileName, 0 , sizeof(char)*FILE_NAME_MAX_SIZE);
 
-    getStringFromConsole(STR_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
+    getStringFromConsole(STR_GET_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
 
     ret = createNewFile(fileName);
 
@@ -164,7 +174,7 @@ static int32_t showOpenFileMenu(void)
 
     memset(fileName, 0 , sizeof(char)*FILE_NAME_MAX_SIZE);
 
-    getStringFromConsole(STR_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
+    getStringFromConsole(STR_GET_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
 
     ret = openFile(fileName);
 
@@ -180,7 +190,7 @@ static int32_t showCloseFileMenu(void)
 
     memset(fileName, 0 , sizeof(char)*FILE_NAME_MAX_SIZE);
 
-    getStringFromConsole(STR_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
+    getStringFromConsole(STR_GET_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
 
     ret = closeFile(fileName);
 
@@ -196,7 +206,7 @@ static int32_t showDeleteFileMenu(void)
 
     memset(fileName, 0 , sizeof(char)*FILE_NAME_MAX_SIZE);
 
-    getStringFromConsole(STR_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
+    getStringFromConsole(STR_GET_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
 
     ret = deleteFile(fileName);
 
@@ -215,7 +225,7 @@ static int32_t showWriteFileMenu(void)
     memset(fileName, 0 , sizeof(char)*FILE_NAME_MAX_SIZE);
     memset(writeBuf, 0 , sizeof(char)*WRITE_BUF_SIZE);
 
-    getStringFromConsole(STR_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
+    getStringFromConsole(STR_GET_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
     getStringFromConsole(STR_WRITE_FILE, writeBuf, (WRITE_BUF_SIZE - 1)); //keep the \0 terminator
 
     len = strlen(writeBuf);
@@ -237,7 +247,7 @@ static int32_t showReadFileMenu(void)
     memset(fileName, 0 , sizeof(char)*FILE_NAME_MAX_SIZE);
     memset(readBuf, 0 , sizeof(char)*READ_BUF_SIZE);
 
-    getStringFromConsole(STR_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
+    getStringFromConsole(STR_GET_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
     numberOfBytes = getUInt32FromConsole(STR_READ_FILE);
 
     if (numberOfBytes > READ_BUF_SIZE)
@@ -265,7 +275,7 @@ static int32_t showTellFileMenu(void)
 
     memset(fileName, 0 , sizeof(char)*FILE_NAME_MAX_SIZE);
 
-    getStringFromConsole(STR_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
+    getStringFromConsole(STR_GET_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
 
     ret = tellFile(fileName, &position);
 
@@ -287,7 +297,7 @@ static int32_t showSeekFileMenu(void)
 
     memset(fileName, 0 , sizeof(char)*FILE_NAME_MAX_SIZE);
 
-    getStringFromConsole(STR_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
+    getStringFromConsole(STR_GET_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
     position = getUInt32FromConsole(STR_SEEK_FILE);
 
     ret = seekFile(fileName, position);
@@ -295,4 +305,71 @@ static int32_t showSeekFileMenu(void)
     printOutput(ret);
 
     return ret;
+}
+
+static int32_t showPrintFileMenu(void)
+{
+    int32_t ret = SUCCESS;
+    char fileName[FILE_NAME_MAX_SIZE];
+    bool showData;
+
+    memset(fileName, 0 , sizeof(char)*FILE_NAME_MAX_SIZE);
+
+    getStringFromConsole(STR_GET_FILE_NAME, fileName, (FILE_NAME_MAX_SIZE - 1)); //keep the \0 terminator
+    showData = getYesOrNotFromConsole(STR_PRINT_DATA);
+
+    ret = printFile(fileName, showData);
+
+    printOutput(ret);
+
+    return ret;
+}
+
+static int32_t showPrintAllFilesMenu(void)
+{
+    int32_t ret = SUCCESS;
+    bool showData;
+
+    showData = getYesOrNotFromConsole(STR_PRINT_DATA);
+
+    ret = printAllFiles(showData);
+
+    printOutput(ret);
+
+    return ret;
+}
+
+void showFileInfo(char *   name,
+                  char *   data,
+                  char *   date,
+                  uint32_t size,
+                  uint32_t w_point,
+                  uint32_t r_point,
+                  bool     is_opened,
+                  bool     showData)
+{
+    if(name != NULL
+       && data != NULL
+       && date != NULL)
+    {
+        printf(STR_FILE_NAME, name);
+        printf(STR_FILE_SIZE, size);
+        printf(STR_FILE_DATE, date);
+        printf(STR_FILE_R_POINT, r_point);
+        printf(STR_FILE_W_POINT, w_point);
+
+        if (is_opened)
+        {
+            printf(STR_FILE_IS_OPENED, STR_YES);
+        }
+        else
+        {
+            printf(STR_FILE_IS_OPENED, STR_NO);
+        }
+
+        if (showData)
+        {
+            printf(STR_FILE_DATA, data);
+        }
+    }
 }

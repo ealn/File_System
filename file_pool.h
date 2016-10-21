@@ -18,6 +18,7 @@ void destroyFilePool(void);
 int32_t insertFileIntoPool(File * pFile);
 int32_t removeFileIntoPool(File * pFile);
 int32_t searchFileIntoPool(char *pName, File **ppOutputFile);
+int32_t printAllFilesIntoPool(bool showData);
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

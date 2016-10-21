@@ -13,6 +13,14 @@ extern "C" {
 #endif
 
 int32_t showUI(void);
+void showFileInfo(char *   name,
+                  char *   data,
+                  char *   date,
+                  uint32_t size,
+                  uint32_t w_point,
+                  uint32_t r_point,
+                  bool     is_opened,
+                  bool     showData);
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

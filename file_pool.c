@@ -16,7 +16,7 @@
 //Structs
 struct _FilePool
 {
-    File     * pFile;
+    File     * file;
     FilePool * next;
     FilePool * prev;
 };
@@ -85,7 +85,7 @@ static bool isEmptySlot(FilePool * pFilePool)
     bool ret = false;
 
     if (pFilePool != NULL
-        && pFilePool->pFile == NULL)
+        && pFilePool->file == NULL)
     {
         ret = true;
     }
@@ -130,9 +130,9 @@ void destroyFilePool(void)
         {
             pFilePool = g_lastPool->prev;
 
-            if (g_lastPool->pFile != NULL)
+            if (g_lastPool->file != NULL)
             {
-                destroyFile(g_lastPool->pFile);
+                destroyFile(g_lastPool->file);
             }
 
             freeFilePool(g_lastPool);
@@ -152,7 +152,7 @@ int32_t insertFileIntoPool(File * pFile)
         {
             if (isEmptySlot(g_lastPool))
             {
-                g_lastPool->pFile = pFile;
+                g_lastPool->file = pFile;
             }
             else
             {
@@ -160,7 +160,7 @@ int32_t insertFileIntoPool(File * pFile)
 
                 if (ret == SUCCESS)
                 {
-                    g_lastPool->pFile = pFile;
+                    g_lastPool->file = pFile;
                 }
             }
         }
@@ -194,12 +194,12 @@ int32_t removeFileIntoPool(File * pFile)
 
             while (pFilePool != NULL)
             {
-                if (pFilePool->pFile == pFile)
+                if (pFilePool->file == pFile)
                 {
                     if (pFilePool == g_filePool)
                     {
-                        destroyFile(pFilePool->pFile);
-                        pFilePool->pFile = NULL;
+                        destroyFile(pFilePool->file);
+                        pFilePool->file = NULL;
                     }
                     else
                     {
@@ -220,7 +220,7 @@ int32_t removeFileIntoPool(File * pFile)
                             }
                         }
 
-                        destroyFile(pFilePool->pFile); 
+                        destroyFile(pFilePool->file); 
                         freeFilePool(pFilePool);
                     }
 
@@ -263,10 +263,10 @@ int32_t searchFileIntoPool(char *pName, File **ppOutputFile)
 
             while (pFilePool != NULL)
             {
-                if (pFilePool->pFile != NULL
-                    && (strcmp(getFileName(pFilePool->pFile), pName) == 0))
+                if (pFilePool->file != NULL
+                    && (strcmp(getFileName(pFilePool->file), pName) == 0))
                 {
-                    *ppOutputFile = pFilePool->pFile;
+                    *ppOutputFile = pFilePool->file;
                     ret = SUCCESS;
                     break;
                 }
@@ -291,3 +291,29 @@ int32_t searchFileIntoPool(char *pName, File **ppOutputFile)
 
     return ret; 
 }
+
+int32_t printAllFilesIntoPool(bool showData)
+{
+    int32_t ret = SUCCESS;
+    FilePool * pFilePool = NULL;
+
+    pFilePool = g_filePool;
+
+    while (pFilePool != NULL)
+    {
+        if (pFilePool->file != NULL)
+        {
+            printFileInfo(pFilePool->file, showData);
+        }
+        else
+        {
+            ret = THERE_ARE_NOT_FILES;
+            break;
+        }
+
+        pFilePool = pFilePool->next; 
+    }
+
+    return ret;
+}
+
