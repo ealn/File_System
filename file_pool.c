@@ -181,6 +181,7 @@ int32_t insertFileIntoPool(File * pFile)
 int32_t removeFileIntoPool(File * pFile)
 {
     int32_t ret = SUCCESS;
+    bool  found = false;
 
     if (pFile != NULL)
     {
@@ -196,6 +197,8 @@ int32_t removeFileIntoPool(File * pFile)
             {
                 if (pFilePool->file == pFile)
                 {
+                    found = true;
+
                     if (pFilePool == g_filePool)
                     {
                         destroyFile(pFilePool->file);
@@ -226,12 +229,13 @@ int32_t removeFileIntoPool(File * pFile)
 
                     break;
                 }
-                else
-                {
-                    ret = FILE_NOT_FOUND;
-                }
 
                 pFilePool = pFilePool->next;
+            }
+
+            if (!found)
+            {
+                ret = FILE_NOT_FOUND;
             }
         }
         else
@@ -251,6 +255,7 @@ int32_t removeFileIntoPool(File * pFile)
 int32_t searchFileIntoPool(char *pName, File **ppOutputFile)
 {
     int32_t ret = SUCCESS;
+    bool found = false;
 
     if (pName != NULL
         && ppOutputFile != NULL)
@@ -267,15 +272,16 @@ int32_t searchFileIntoPool(char *pName, File **ppOutputFile)
                     && (strcmp(getFileName(pFilePool->file), pName) == 0))
                 {
                     *ppOutputFile = pFilePool->file;
-                    ret = SUCCESS;
+                    found = true;
                     break;
-                }
-                else
-                {
-                    ret = FILE_NOT_FOUND;
                 }
 
                 pFilePool = pFilePool->next;
+            }
+
+            if (!found)
+            {
+                ret = FILE_NOT_FOUND;
             }
         }
         else

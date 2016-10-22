@@ -39,7 +39,10 @@ extern "C" {
 #define STR_SEEK_FILE                "\nIntroduce la nueva posicion de lectura del archivo: "
 #define STR_PRINT_DATA               "\nDeseas imprimir los datos del archivo[s, n]: "
 #define STR_FILE_NAME                "\nNombre del archivo: %s"
-#define STR_FILE_DATA                "\nInformacion del archivo\n\n%s"
+#define STR_FILE_DATA                "\nInformacion del archivo:\n\n"  \
+                                     "--------------------------------------------------------------------\n" \
+                                     "%s\n" \
+                                     "--------------------------------------------------------------------\n\n"
 #define STR_FILE_DATE                "\nFecha de creacion: %s"
 #define STR_FILE_SIZE                "\nTamaño del archivo: %d"
 #define STR_FILE_R_POINT             "\nPuntero de lectura: %d"
