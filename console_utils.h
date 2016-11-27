@@ -10,6 +10,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifndef __CONSOLE_UTILS_H__
+#define __CONSOLE_UTILS_H__
+
+#if (defined(_cplusplus) || defined(__cplusplus))
+extern "C" {
+#endif
+
 int32_t getUInt32FromConsole(const char *consoleStr);
 int32_t getInt32FromConsole(const char *consoleStr);
 uint16_t getUInt16FromConsole(const char *consoleStr);
@@ -20,7 +27,6 @@ void getStringFromConsole(const char *consoleStr, char *outputStr, uint32_t maxS
 char getFirstCharFromConsole(const char *consoleStr);
 bool validateIntInput(int32_t value, int32_t lowerLimit, int32_t upperLimit);
 void cleanScreen(void);
-bool repeatAction(const char *str);
 bool getYesOrNotFromConsole(const char *consoleStr);
 uint8_t createMenuWithMultipleOptions(const char * title,
                                       const char * header,
@@ -30,4 +36,12 @@ uint8_t createMenuWithMultipleOptions(const char * title,
                                       int32_t lowerLimit, 
                                       int32_t upperLimit, 
                                       bool needCleanScreen);
+void getArgumentsFromConsole(char * consoleStr, char *** opArguments, uint32_t *oNumberOfArgs);
+void parseString(const char *strToBeParsed, char separator, char ***opMatrix, uint32_t numberOfElements);
+void destroyStringsParsed(char ** matrixStr, uint32_t numberOfElement);
 
+#if (defined(_cplusplus) || defined(__cplusplus))
+} // extern "C"
+#endif
+
+#endif // !defined(__CONSOLE_UTILS_H__)

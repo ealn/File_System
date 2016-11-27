@@ -10,37 +10,18 @@
 #include <string.h>
 
 #include "file.h"
-#include "file_pool.h"
+#include "f_pool.h"
+#include "file_system.h"
 #include "memutils.h"
-#include "trace.h"
-#include "UI.h"
+#include "interface.h"
 
 #define CHUNK_SIZE    512
-//Structs
-struct _File
-{
-    char *   name;
-    char *   data;
-    char     date[TIME_BUF_SIZE];
-    uint32_t size;
-    uint32_t w_point;      //write point
-    uint32_t r_point;      //read point
-    bool     is_opened;
-};
 
-//Defines
-
-//Implementation
 static File * allocFile(void)
 {
     File * pFile = NULL;
     
     pFile = (File *)MEMALLOC(sizeof(File));
-    
-    if (pFile == NULL)
-    {
-        FILE_ERROR("File could not be allocated\n");
-    }
     
     return pFile;
 }
@@ -51,10 +32,6 @@ static void freeFile(File *pFile)
     {
         MEMFREE((void *)pFile);
     }
-    else
-    {
-        FILE_ERROR("File is null\n");
-    }
 }
 
 static void reallocData(File * pFile, uint32_t newSize)
@@ -64,57 +41,6 @@ static void reallocData(File * pFile, uint32_t newSize)
         pFile->data = (char *)MEMREALLOC(pFile->data,
                                          pFile->size,
                                          newSize);
-
-        if (pFile->data == NULL)
-        {
-            FILE_ERROR("Data could not be reallocated\n");
-        }
-    }
-}
-
-static File * createFile(char *pName)
-{
-    File * newFile = NULL;
-    uint32_t nameSize = 0;
-
-    if (pName != NULL)
-    {
-        newFile = allocFile(); 
-        nameSize = strlen(pName) + 1;  //add the \0 character
-
-        if (newFile != NULL)
-        {
-            newFile->name = (char *)MEMALLOC(sizeof(char)* nameSize);
-            newFile->data = (char *)MEMALLOC(sizeof(char)* CHUNK_SIZE);
-            newFile->size = CHUNK_SIZE;
-
-            memcpy(newFile->name, pName, nameSize);
-
-            getTimeStamp(newFile->date);
-        }
-    }
-    
-    return newFile;
-}
-
-void destroyFile(File * pFile)
-{
-    if (pFile != NULL)
-    {
-        if (pFile->data != NULL)
-        {
-            MEMFREE((void *)pFile->data);
-            MEMFREE((void *)pFile->name);
-            freeFile(pFile);
-        }
-        else
-        {
-            FILE_ERROR("File does not have data\n");
-        }
-    }
-    else
-    {
-        FILE_WARNING("File is null\n");
     }
 }
 
@@ -127,79 +53,23 @@ static void changeFileSize(File *pFile, uint32_t newSize)
     }
 }
 
-char * getFileName(File *pFile)
-{
-    char * fileName = NULL;
-
-    if (pFile != NULL)
-    {
-        fileName = pFile->name;
-    }
-
-    return fileName;
-}
-
-void printFileInfo(File *pFile, bool showData)
+void printFileInfo(File *pFile)
 {
     if (pFile != NULL)
     {
-        showFileInfo(pFile->name,
-                     pFile->data,
-                     pFile->date,
-                     pFile->size,
-                     pFile->w_point,
-                     pFile->r_point,
-                     pFile->is_opened,
-                     showData);
+        printf("%s\n", pFile->name);
     }
 }
 
-//Entry points
-int32_t createNewFile(char *pName)
+int32_t openFile(Folder *parent, char *pName)
 {
     int32_t ret = SUCCESS;
     File   *pFile = NULL;
 
-    if (pName != NULL)
+    if (parent != NULL
+        && pName != NULL)
     {
-        ret = searchFileIntoPool(pName, &pFile);
-
-        if (ret == FILE_NOT_FOUND)
-        {
-            pFile = createFile(pName); 
-
-            if (pFile != NULL)
-            {
-                ret = insertFileIntoPool(pFile);
-            }
-            else
-            {
-                FILE_ERROR("File could not be created\n");
-                ret = FAIL;
-            }
-        }
-        else
-        {
-            ret = FILE_ALREADY_EXIST;
-        }
-    }
-    else
-    {
-        FILE_ERROR("Name is null\n");
-        ret = FAIL;
-    }
-
-    return ret; 
-}
-
-int32_t openFile(char *pName)
-{
-    int32_t ret = SUCCESS;
-    File   *pFile = NULL;
-
-    if (pName != NULL)
-    {
-        ret = searchFileIntoPool(pName, &pFile);
+        ret = searchFileOrFolderIntoPool(parent, pName, &pFile, NULL, false);
 
         if (pFile != NULL)
         {
@@ -215,21 +85,21 @@ int32_t openFile(char *pName)
     }
     else
     {
-        FILE_ERROR("Name is null\n");
         ret = FAIL;
     }
 
     return ret; 
 }
 
-int32_t closeFile(char *pName)
+int32_t closeFile(Folder *parent, char *pName)
 {
     int32_t ret = SUCCESS;
     File   *pFile = NULL;
 
-    if (pName != NULL)
+    if (parent != NULL
+        && pName != NULL)
     {
-        ret = searchFileIntoPool(pName, &pFile);
+        ret = searchFileOrFolderIntoPool(parent, pName, &pFile, NULL, false);
 
         if (pFile != NULL)
         {
@@ -245,50 +115,25 @@ int32_t closeFile(char *pName)
     }
     else
     {
-        FILE_ERROR("Name is null\n");
         ret = FAIL;
     }
 
     return ret; 
 }
 
-int32_t deleteFile(char *pName)
+int32_t writeFile(Folder *parent, char *pName, char *input, uint32_t numberOfBytes)
 {
     int32_t ret = SUCCESS;
     File   *pFile = NULL;
 
-    if (pName != NULL)
-    {
-        uint32_t index = 0;
-
-        ret = searchFileIntoPool(pName, &pFile);
-
-        if (pFile != NULL)
-        {
-            ret = removeFileIntoPool(pFile);
-        }
-    }
-    else
-    {
-        FILE_ERROR("Name is null\n");
-        ret = FAIL;
-    }
-
-    return ret; 
-}
-
-int32_t writeFile(char *pName, char *input, uint32_t numberOfBytes)
-{
-    int32_t ret = SUCCESS;
-    File   *pFile = NULL;
-
-    if (pName != NULL
+    if (parent != NULL
+        && pName != NULL
         && input != NULL
         && numberOfBytes >= 1)
     {
         uint32_t index = 0;
 
-        ret = searchFileIntoPool(pName, &pFile);
+        ret = searchFileOrFolderIntoPool(parent, pName, &pFile, NULL, false);
 
         if (pFile != NULL)
         {
@@ -302,31 +147,41 @@ int32_t writeFile(char *pName, char *input, uint32_t numberOfBytes)
             memcpy(&pFile->data[index], input, numberOfBytes);
 
             pFile->w_point += numberOfBytes;
+
+            getTimeStamp(pFile->m_date);
+
+            /*TODO:
+            if (ret == SUCCESS
+                && sendInfoToHD())
+            {
+                ret = writeDataIntoFile(pFile, pFile->data);
+            }*/
         }
     }
     else
     {
-        FILE_ERROR("Name is null or output is null\n");
         ret = FAIL;
     }
 
     return ret; 
 }
 
-int32_t readFile(char *pName, char *output, uint32_t numberOfBytes)
+int32_t readFile(Folder *parent, char *pName, char *output, uint32_t numberOfBytes)
 {
     int32_t ret = SUCCESS;
     File   *pFile = NULL;
 
-    if (pName != NULL
+    if (parent != NULL
+        && pName != NULL
         && output != NULL)
     {
         uint32_t index = 0;
 
-        ret = searchFileIntoPool(pName, &pFile);
+        ret = searchFileOrFolderIntoPool(parent, pName, &pFile, NULL, false);
 
         if (pFile != NULL)
         {
+            
             index = pFile->r_point;
 
             if (index + numberOfBytes > pFile->size)
@@ -339,26 +194,29 @@ int32_t readFile(char *pName, char *output, uint32_t numberOfBytes)
             }
 
             pFile->r_point += numberOfBytes;
+
+            //TODO:
+            //output = readDataFromFile(pFile);
         }
     }
     else
     {
-        FILE_ERROR("Name is null or output is null\n");
         ret = FAIL;
     }
 
     return ret; 
 }
 
-int32_t tellFile(char *pName, uint32_t *output)
+int32_t tellFile(Folder *parent, char *pName, uint32_t *output)
 {
     int32_t ret = SUCCESS;
     File   *pFile = NULL;
 
-    if (pName != NULL
+    if (parent != NULL
+        && pName != NULL
         && output != NULL)
     {
-        ret = searchFileIntoPool(pName, &pFile);
+        ret = searchFileOrFolderIntoPool(parent, pName, &pFile, NULL, false);
 
         if (pFile != NULL)
         {
@@ -367,21 +225,21 @@ int32_t tellFile(char *pName, uint32_t *output)
     }
     else
     {
-        FILE_ERROR("Name is null or output is null\n");
         ret = FAIL;
     }
 
     return ret; 
 }
 
-int32_t seekFile(char *pName, uint32_t newPoint)
+int32_t seekFile(Folder *parent, char *pName, uint32_t newPoint)
 {
     int32_t ret = SUCCESS;
     File   *pFile = NULL;
 
-    if (pName != NULL)
+    if (parent != NULL
+        && pName != NULL)
     {
-        ret = searchFileIntoPool(pName, &pFile);
+        ret = searchFileOrFolderIntoPool(parent, pName, &pFile, NULL, false);
 
         if (pFile != NULL)
         {
@@ -391,46 +249,87 @@ int32_t seekFile(char *pName, uint32_t newPoint)
             }
             else
             {
-                FILE_WARNING("newPoint is major than size\n");
                 ret = FAIL;
             }
         }
     }
     else
     {
-        FILE_ERROR("Name is null\n");
         ret = FAIL;
     }
 
     return ret; 
 }
 
-int32_t printFile(char *pName, bool showData)
+File * createNewFile(Folder *parent, char *pName, uint16_t permissions)
 {
-    int32_t ret = SUCCESS;
-    File   *pFile = NULL;
+    File * newFile = NULL;
+    uint32_t nameSize = 0;
+    int32_t  ret = 0;
 
     if (pName != NULL)
     {
-        ret = searchFileIntoPool(pName, &pFile);
+        ret = searchFileOrFolderIntoPool(parent, pName, NULL, NULL, true);
 
-        if (pFile != NULL)
+        if (ret == FILE_NOT_FOUND)
         {
-            printFileInfo(pFile, showData);
+            newFile = allocFile(); 
+            nameSize = strlen(pName) + 1;  //add the \0 character
+
+            if (newFile != NULL)
+            {
+                newFile->name = (char *)MEMALLOC(sizeof(char)* nameSize);
+                newFile->data = (char *)MEMALLOC(sizeof(char)* CHUNK_SIZE);
+                newFile->size = CHUNK_SIZE;
+                newFile->permissions = permissions;
+
+                memcpy(newFile->name, pName, nameSize);
+
+                getTimeStamp(newFile->c_date);
+
+                ret = createNewFpool(NULL, newFile, false, parent);
+
+                if (ret == SUCCESS
+                    && sendInfoToHD())
+                {
+                    ret = createFileIntoHardDrive(newFile);
+                }
+            }
         }
     }
-    else
-    {
-        FILE_ERROR("Name is null\n");
-        ret = FAIL;
-    }
+    
+    return newFile;
 }
 
-int32_t printAllFiles(bool showData)
+int32_t destroyFile(File * pFile)
 {
     int32_t ret = SUCCESS;
 
-    ret = printAllFilesIntoPool(showData);
+    if (pFile != NULL)
+    {
+        ret = removeFileOrFolderFromPool(pFile, NULL, false);
+
+        if (ret == SUCCESS
+            && sendInfoToHD())
+        {
+            ret = removeFileIntoHardDrive(pFile);
+        }
+
+        if (ret == SUCCESS)
+        {
+            if (pFile->data != NULL) 
+            {
+                MEMFREE((void *)pFile->data);
+            }
+
+            if (pFile->name)
+            {
+                MEMFREE((void *)pFile->name); 
+            }
+
+            freeFile(pFile);
+        }
+    }
 
     return ret;
 }

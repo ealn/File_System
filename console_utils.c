@@ -12,6 +12,7 @@
 #include <ctype.h>
 
 #include "console_utils.h"
+#include "memutils.h"
 
 // Macros to select the OS to be used
 #define WINDOWS
@@ -19,6 +20,7 @@
 
 //Constants
 #define STDIN_BUF_SIZE          4096
+#define IS_PRINTABLE_CHAR(c)    (((c) > ' ') && ((c) < '}'))
 
 void cleanScreen(void)
 {
@@ -136,14 +138,16 @@ int8_t getInt8FromConsole(const char *consoleStr)
 
 void getStringFromConsole(const char *consoleStr, char *outputStr, uint32_t maxSize)
 {
-    if (consoleStr != NULL
-        && outputStr != NULL)
+    if (outputStr != NULL)
     {
         char stdinBuf[STDIN_BUF_SIZE];
 
         memset(&stdinBuf, 0, sizeof(char)*STDIN_BUF_SIZE);
 
-        printf(consoleStr);
+        if (consoleStr != NULL)
+        {
+            printf(consoleStr); 
+        }
 
         //prevent buffer overflows with the variable stdinBuf
         fgets(stdinBuf, STDIN_BUF_SIZE, stdin);
@@ -181,9 +185,9 @@ bool validateIntInput(int32_t value, int32_t lowerLimit, int32_t upperLimit)
     return isValid;
 }
 
-bool repeatAction(const char *str)
+bool getYesOrNotFromConsole(const char *consoleStr)
 {
-    bool repeat = false;
+    bool ret = false;
     bool loop = false;
     char inputChar = 0;
     char inputStr[8];
@@ -193,7 +197,7 @@ bool repeatAction(const char *str)
         loop = false;
 
         memset(inputStr, 0, sizeof(char)*8);
-        getStringFromConsole(str, inputStr, 8); 
+        getStringFromConsole(consoleStr, inputStr, 8); 
         inputChar = inputStr[0];
 
         if (strlen(inputStr) == 1)   //1 character
@@ -203,7 +207,7 @@ bool repeatAction(const char *str)
             {
                 if (inputChar == 's' || inputChar == 'S') 
                 {
-                    repeat = true;
+                    ret = true;
                 }
             }
             else
@@ -223,15 +227,6 @@ bool repeatAction(const char *str)
         }
     }
     while (loop);
-
-    return repeat;
-}
-
-bool getYesOrNotFromConsole(const char *consoleStr)
-{
-    bool ret = false;
-
-    ret = repeatAction(consoleStr);
 
     return ret;
 }
@@ -281,3 +276,134 @@ uint8_t createMenuWithMultipleOptions(const char * title,
 
     return optionSelected;
 }
+
+void parseString(const char *strToBeParsed, char separator, char ***opMatrix, uint32_t *oNumberOfElements)
+{
+    if (strToBeParsed != NULL
+        && oNumberOfElements != NULL
+        && opMatrix != NULL)
+    {
+        uint32_t  i = 0;
+        uint32_t  j = 0;
+        uint32_t  k = 0;
+        bool      isChar = 0;
+        uint32_t  size = 0;
+        uint32_t  maxSize = 0;
+        char    **matrix = NULL;
+        uint32_t  nRows = 0;
+        uint32_t  nCol = 0;
+
+        *oNumberOfElements = 0;
+        *opMatrix = NULL;
+
+        //get number of arguments
+        for (i = 0; strToBeParsed[i] != '\0'; i++)
+        {
+            if (IS_PRINTABLE_CHAR(strToBeParsed[i])
+                && (strToBeParsed[i] != separator))
+            {
+                //An argument was found
+                if (!isChar)
+                {
+                    (*oNumberOfElements)++; 
+                }
+
+                //this variable is used to indicate if a printable char was found
+                isChar = true;
+                size++;
+
+                if (size > maxSize)
+                {
+                    maxSize = size;
+                }
+
+                continue;
+            }
+
+            if (isChar
+                && (strToBeParsed[i] == separator))
+            {
+                size = 0;
+                isChar = false; 
+            }
+        }
+
+        if (*oNumberOfElements > 0)
+        {
+            nRows = *oNumberOfElements;
+            nCol = maxSize + 1; //add the null character
+
+            //alocate memory for the matrix
+            matrix = (char **)MEMALLOC(nRows * sizeof(char *));
+
+            if (matrix != NULL)
+            {
+                //allocate memory of each argument
+                for (i = 0; i < nRows; i++)
+                {
+                    matrix[i] = (char *)MEMALLOC(nCol * sizeof(char));
+                }
+
+                //copy the info to the array of Arguments
+                for (i = 0; strToBeParsed[i] != '\0'; i++)
+                {
+                    if (IS_PRINTABLE_CHAR(strToBeParsed[i])
+                        && (strToBeParsed[i] != separator))
+                    {
+                        //copy char by char the string
+                        isChar = true;
+                        matrix[j][k] = strToBeParsed[i];
+                        k++;
+                        continue;
+                    }
+             
+                    if (isChar
+                        && (strToBeParsed[i] == separator))
+                    {
+                        //Increase the index of the array of arguments
+                        j++;
+                        k = 0;
+                        isChar = false;
+                    }
+                }
+
+                *opMatrix = matrix;
+            }
+        }
+    }
+}
+
+void destroyStringsParsed(char ** matrixStr, uint32_t numberOfElements)
+{
+    if (matrixStr != NULL
+        && numberOfElements > 0)
+    {
+        uint32_t i = 0;
+
+        for (i = 0; i < numberOfElements; i++)
+        {
+            MEMFREE(matrixStr[i]);
+        }
+
+        MEMFREE(matrixStr);
+    }
+}
+
+void getArgumentsFromConsole(char * consoleStr, char *** opArguments, uint32_t *oNumberOfArgs)
+{
+    if (oNumberOfArgs != NULL
+        && opArguments != NULL)
+    {
+        char outConsoleStr[STDIN_BUF_SIZE/2]; 
+
+        memset(&outConsoleStr, 0, sizeof(char)*(STDIN_BUF_SIZE/2));
+
+        getStringFromConsole(consoleStr, outConsoleStr, (STDIN_BUF_SIZE/2));
+
+        //parse string to get the arguments
+        parseString(outConsoleStr, ' ', opArguments, oNumberOfArgs);
+    }
+}
+
+
+

@@ -4,30 +4,27 @@
  *
  * Author: Adrian Luna
  *
- * Porpuse: Header that contains all functions to the files
+ * Porpuse: Header that contains all functions to handle files
  */
+
 #include "defines.h"
+#include <stdio.h>
+
+#ifndef __FILE_H__
+#define __FILE_H__
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 extern "C" {
 #endif
 
-#define FILE_NAME_MAX_SIZE    32
-
-int32_t createNewFile(char *pName);
-int32_t openFile(char *pName);
-int32_t closeFile(char *pName);
-int32_t deleteFile(char *pName);
-int32_t writeFile(char *pName, char *input, uint32_t numberOfBytes);
-int32_t readFile(char *pName, char *output, uint32_t numberOfBytes);
-int32_t tellFile(char *pName, uint32_t *output);
-int32_t seekFile(char *pName, uint32_t newPoint);
-void destroyFile(File * pFile);
-char * getFileName(File *pFile);
-void printFileInfo(File *pFile, bool showData);
-int32_t printFile(char *pName, bool showData);
-int32_t printAllFiles(bool showData);
+File * createNewFile(Folder *parent, char *pName, uint16_t permissions);
+int32_t destroyFile(File * pFile);
+void printFileInfo(File *pFile);
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"
 #endif
+
+#endif // !defined(__FILE_H__)
+
+

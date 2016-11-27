@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#ifndef __MEM_UTILS_H__
+#define __MEM_UTILS_H__
+
 #if (defined(_cplusplus) || defined(__cplusplus))
 extern "C" {
 #endif
@@ -41,3 +44,5 @@ void * memRealloc(void *ptr,
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"
 #endif
+
+#endif // !defined(__MEM_UTILS_H__)
