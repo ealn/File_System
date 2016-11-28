@@ -126,7 +126,7 @@ Folder * getFolderFromPath(char *path)
                                                      true);
                 }
 
-                if (ret == FILE_NOT_FOUND)
+                if (ret == FOLDER_NOT_FOUND)
                 {
                     pFolder = NULL;
                 }

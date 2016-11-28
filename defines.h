@@ -71,6 +71,8 @@ struct _Folder
 #define FILE_IS_ALREADY_OPENED    -4
 #define FILE_IS_ALREADY_CLOSED    -5
 #define THERE_ARE_NOT_FILES       -6
+#define FOLDER_NOT_FOUND          -7
+#define FOLDER_ALREADY_EXIST      -8
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

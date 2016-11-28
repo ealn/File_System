@@ -44,7 +44,7 @@ Folder * createNewFolder(Folder * parent, const char *pName, const char *pCreati
     {
         ret = searchFileOrFolderIntoPool(parent, pName, NULL, NULL, true);
 
-        if (ret == FILE_NOT_FOUND)
+        if (ret == FOLDER_NOT_FOUND)
         {
             newFolder = allocFolder(); 
             nameSize = strlen(pName) + 1;  //add the \0 character

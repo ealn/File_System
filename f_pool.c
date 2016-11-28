@@ -124,10 +124,19 @@ int32_t searchFileOrFolderIntoPool(Folder     *parentFolder,
                                    Folder    **ppOutputFolder,
                                    bool        searchDir)
 {
-    int32_t ret = FILE_NOT_FOUND;
+    int32_t ret;
     bool found = false;
     bool selectParent = false;
     bool selectGrandParent = false;
+
+    if (searchDir)
+    {
+        ret = FOLDER_NOT_FOUND;
+    }
+    else
+    {
+        ret = FILE_NOT_FOUND;
+    }
 
     if (pName != NULL
         && parentFolder != NULL)

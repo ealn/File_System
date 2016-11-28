@@ -29,6 +29,7 @@ static int32_t runCommand(char **args, uint32_t nargs);
 static int32_t runHelp(char **args, uint32_t nargs);
 static int32_t runCd(char **args, uint32_t nargs);
 static int32_t runLs(char **args, uint32_t nargs);
+static int32_t runDir(char **args, uint32_t nargs);
 static int32_t runRm(char **args, uint32_t nargs);
 static int32_t runMkdir(char **args, uint32_t nargs);
 static int32_t runPwd(char **args, uint32_t nargs);
@@ -126,6 +127,10 @@ static void printOutput(int32_t ret)
             break;
         case THERE_ARE_NOT_FILES:     printf("\nERROR: There are not files\n\n");
             break;
+        case FOLDER_NOT_FOUND:        printf("\nERROR: Folder not found\n\n");
+            break;
+        case FOLDER_ALREADY_EXIST:    printf("\nERROR: Folder already exist\n\n");
+            break;
         default:
             break;
     }
@@ -192,7 +197,11 @@ static int32_t runCommand(char **args, uint32_t nargs)
         {
             ret = runLs(args, nargs);
         }
-        else if (strcmp("rm", args[0]) == 0)
+        else if (strcmp("dir", args[0]) == 0)
+        {
+            ret = runDir(args, nargs);
+        }
+        else if (strcmp("rm", args[0]) == 0) 
         {
             ret = runRm(args, nargs);
         }
@@ -259,6 +268,7 @@ static int32_t runHelp(char **args, uint32_t nargs)
     printf("help    : show help\n");
     printf("cd      : change directory\n");
     printf("ls      : list files\n");
+    printf("dir     : show directory\n");
     printf("rm      : remove file\n");
     printf("mkdir   : create a directory\n");
     printf("pwd     : show current path\n");
@@ -333,7 +343,48 @@ static int32_t runLs(char **args, uint32_t nargs)
 
                 if (pFolder != NULL)
                 {
-                    //setCurrentDirectory(pFolder);
+                    ret = printInfoOfPool(pFolder);
+                }
+            }
+
+            if (pName != NULL) 
+            {
+                MEMFREE(pName); 
+            }
+        }
+    }
+
+    return ret;
+}
+
+static int32_t runDir(char **args, uint32_t nargs)
+{
+    int32_t ret = SUCCESS;
+
+    if (args != NULL
+        && nargs > 0)
+    {
+        Folder *pFolder = NULL;
+
+        if (nargs == 1)
+        {
+            pFolder = getCurrentFolder();
+            ret = printInfoOfPool(pFolder);
+        }
+        else
+        {
+            char   * pName = NULL;
+
+            pFolder = getFolderFromPath(args[1]);
+            getName(args[1], &pName);
+
+            if (pFolder != NULL)
+            {
+                ret = searchFileOrFolderIntoPool(pFolder, pName, NULL, &pFolder, true);
+
+                if (pFolder != NULL)
+                {
+                    ret = printInfoOfPool(pFolder);
                 }
             }
 
@@ -354,7 +405,27 @@ static int32_t runRm(char **args, uint32_t nargs)
     if (args != NULL
         && nargs > 0)
     {
+        Folder * pFolder = NULL;
+        File   * pFile = NULL;
+        char   * pName = NULL;
 
+        pFolder = getFolderFromPath(args[1]);
+        getName(args[1], &pName);
+
+        if (pFolder != NULL)
+        {
+            ret = searchFileOrFolderIntoPool(pFolder, pName, &pFile, NULL, false);
+
+            if (pFile != NULL)
+            {
+                ret = destroyFile(pFile);
+            }
+        }
+
+        if (pName != NULL) 
+        {
+            MEMFREE(pName); 
+        }
     }
 
     return ret;
@@ -436,7 +507,25 @@ static int32_t runTouch(char **args, uint32_t nargs)
     if (args != NULL
         && nargs > 0)
     {
+        uint32_t i = 0;
+        Folder * parentFolder = NULL;
+        char  *  pName = NULL;
 
+        for (i = 1; i < nargs; i++)
+        {
+            parentFolder = getFolderFromPath(args[i]);
+            getName(args[i], &pName);
+
+            //TODO: check if the file exist then the modification date needs to be changed
+            if (parentFolder != NULL)
+            {
+                createNewFile(parentFolder, pName, READ_ONLY | WRITE_ONLY | EXEC_ONLY);
+            }
+            if (pName != NULL) 
+            {
+                MEMFREE(pName); 
+            }
+        }
     }
 
     return ret;
