@@ -37,7 +37,7 @@ uint8_t createMenuWithMultipleOptions(const char * title,
                                       int32_t upperLimit, 
                                       bool needCleanScreen);
 void getArgumentsFromConsole(char * consoleStr, char *** opArguments, uint32_t *oNumberOfArgs);
-void parseString(const char *strToBeParsed, char separator, char ***opMatrix, uint32_t numberOfElements);
+void parseString(const char *strToBeParsed, const char separator, char ***opMatrix, uint32_t *oNumberOfElements);
 void destroyStringsParsed(char ** matrixStr, uint32_t numberOfElement);
 
 #if (defined(_cplusplus) || defined(__cplusplus))

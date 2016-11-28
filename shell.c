@@ -11,8 +11,12 @@
 #include <string.h>
 
 #include "shell.h"
+#include "memutils.h"
 #include "console_utils.h"
 #include "file_system.h"
+#include "file.h"
+#include "folder.h"
+#include "f_pool.h"
 
 #define PROMPT_SIZE   100
 #define DIST_NAME     "File-System-1.0: "
@@ -36,6 +40,7 @@ static int32_t runSudo(char **args, uint32_t nargs);
 static int32_t runEcho(char **args, uint32_t nargs);
 static int32_t runEdit(char **args, uint32_t nargs);
 static int32_t runClean(char **args, uint32_t nargs);
+static int32_t runCat(char **args, uint32_t nargs);
 static void printOutput(int32_t ret);
 
 int32_t runShell(void)
@@ -142,6 +147,32 @@ static bool validateArg(char **args)
     return ret;
 }
 
+static int32_t getName(char *path, char **output)
+{
+    int32_t ret = SUCCESS;
+
+    if (path != NULL
+        && output != NULL)
+    {
+        char    **listOut = NULL;
+        uint32_t  numberOfElements = 0;
+        uint32_t  length = 0;
+
+        parseString(path, FOLDER_SEPARATOR, &listOut, &numberOfElements);
+
+        if (listOut != NULL)
+        {
+            length = strlen(listOut[numberOfElements - 1]) + 1;
+
+            *output = (char *)MEMALLOC(sizeof(char) * length);
+            memcpy(*output, listOut[numberOfElements - 1], sizeof(char) * (length - 1));
+            destroyStringsParsed(listOut, numberOfElements);
+        }
+    }
+
+    return ret; 
+}
+
 static int32_t runCommand(char **args, uint32_t nargs)
 {
     int32_t ret = SUCCESS;
@@ -205,6 +236,10 @@ static int32_t runCommand(char **args, uint32_t nargs)
         {
             ret = runClean(args, nargs);
         }
+        else if (strcmp("cat", args[0]) == 0)
+        {
+            ret = runCat(args, nargs);
+        }
         else
         {
             ret = FAIL;
@@ -244,9 +279,28 @@ static int32_t runCd(char **args, uint32_t nargs)
     int32_t ret = SUCCESS;
 
     if (args != NULL
-        && nargs > 0)
+        && nargs > 1)
     {
+        Folder * pFolder = NULL;
+        char   * pName = NULL;
 
+        pFolder = getFolderFromPath(args[1]);
+        getName(args[1], &pName);
+
+        if (pFolder != NULL)
+        {
+            ret = searchFileOrFolderIntoPool(pFolder, pName, NULL, &pFolder, true);
+
+            if (pFolder != NULL)
+            {
+                setCurrentDirectory(pFolder); 
+            }
+        }
+
+        if (pName != NULL) 
+        {
+            MEMFREE(pName); 
+        }
     }
 
     return ret; 
@@ -259,7 +313,35 @@ static int32_t runLs(char **args, uint32_t nargs)
     if (args != NULL
         && nargs > 0)
     {
+        Folder *pFolder = NULL;
 
+        if (nargs == 1)
+        {
+            pFolder = getCurrentFolder();
+            ret = printInfoOfPool(pFolder);
+        }
+        else
+        {
+            char   * pName = NULL;
+
+            pFolder = getFolderFromPath(args[1]);
+            getName(args[1], &pName);
+
+            if (pFolder != NULL)
+            {
+                ret = searchFileOrFolderIntoPool(pFolder, pName, NULL, &pFolder, true);
+
+                if (pFolder != NULL)
+                {
+                    //setCurrentDirectory(pFolder);
+                }
+            }
+
+            if (pName != NULL) 
+            {
+                MEMFREE(pName); 
+            }
+        }
     }
 
     return ret;
@@ -283,9 +365,26 @@ static int32_t runMkdir(char **args, uint32_t nargs)
     int32_t ret = SUCCESS;
 
     if (args != NULL
-        && nargs > 0)
+        && nargs > 1)
     {
+        uint32_t i = 0;
+        Folder * parentFolder = NULL;
+        char  *  pName = NULL;
 
+        for (i = 1; i < nargs; i++)
+        {
+            parentFolder = getFolderFromPath(args[i]);
+            getName(args[i], &pName);
+
+            if (parentFolder != NULL)
+            {
+                createNewFolder(parentFolder, pName, NULL);
+            }
+            if (pName != NULL) 
+            {
+                MEMFREE(pName); 
+            }
+        }
     }
 
     return ret;
@@ -410,6 +509,19 @@ static int32_t runClean(char **args, uint32_t nargs)
         && nargs > 0)
     {
         cleanScreen();
+    }
+
+    return ret;
+}
+
+static int32_t runCat(char **args, uint32_t nargs)
+{
+    int32_t ret = SUCCESS;
+
+    if (args != NULL
+        && nargs > 0)
+    {
+        
     }
 
     return ret;

@@ -23,6 +23,7 @@ int32_t searchFileOrFolderIntoPool(Folder     *parentFolder,
                                    Folder    **ppOutputFolder,
                                    bool        searchDir);
 int32_t removeFileOrFolderFromPool(File * pFile, Folder *pFolder, bool isDir);
+int32_t printInfoOfPool(Folder * pFolder);
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

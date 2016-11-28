@@ -10,12 +10,13 @@
 
 #include "file_system.h"
 #include "folder.h"
+#include "f_pool.h"
 #include "interface.h"
+#include "console_utils.h"
 
 #define MAX_USER_NAME         10
 #define ROOT_USER             "root"
 #define DEFAULT_USER          "user"
-#define ROOT_FOLDER           "/"
 
 Folder *g_rootFolder = NULL;
 Folder *g_currentFolder = NULL;
@@ -75,7 +76,7 @@ Folder * createRootFolder(void)
 {
     Folder *pRootFolder = NULL;
 
-    pRootFolder = createNewFolder(NULL, ROOT_FOLDER, NULL);
+    pRootFolder = createNewFolder(NULL, ROOT_FOLDER_NAME, NULL);
     g_rootFolder = pRootFolder;
     g_currentFolder = g_rootFolder;
 
@@ -91,4 +92,56 @@ void closeFileSystem(void)
     }
 }
 
+Folder * getFolderFromPath(char *path)
+{
+    Folder * pFolder = NULL;
+    char   **listOfParms = NULL;
+    uint32_t numberOfParms = 0;
+    uint32_t i = 0;
+    int32_t  ret = 0;
+
+    if (path != NULL)
+    {
+        parseString(path, FOLDER_SEPARATOR, &listOfParms, &numberOfParms);
+
+        if (path[0] == FOLDER_SEPARATOR)
+        {
+            pFolder = g_rootFolder;
+        }
+        else
+        {
+            pFolder = g_currentFolder; 
+        }
+
+        if (listOfParms != NULL)
+        {
+            if (numberOfParms > 1)
+            {
+                for (i = 0; i < (numberOfParms - 1); i++)
+                {
+                    ret = searchFileOrFolderIntoPool(pFolder,
+                                                     listOfParms[i],
+                                                     NULL,
+                                                     &pFolder,
+                                                     true);
+                }
+
+                if (ret == FILE_NOT_FOUND)
+                {
+                    pFolder = NULL;
+                }
+            }
+
+            destroyStringsParsed(listOfParms, numberOfParms);
+        }
+
+    }
+
+    return pFolder;
+}
+
+void setCurrentDirectory(Folder *pFolder)
+{
+    g_currentFolder = pFolder;
+}
 

@@ -11,6 +11,7 @@
 #include "f_pool.h"
 #include "folder.h"
 #include "file.h"
+#include "file_system.h"
 #include "memutils.h"
 
 //Implementation
@@ -125,13 +126,17 @@ int32_t searchFileOrFolderIntoPool(Folder     *parentFolder,
 {
     int32_t ret = FILE_NOT_FOUND;
     bool found = false;
+    bool selectParent = false;
+    bool selectGrandParent = false;
 
     if (pName != NULL
         && parentFolder != NULL)
     {
         Fpool * parentFpool = NULL;
+        Fpool * grandParent = NULL;
 
         parentFpool = parentFolder->fpool;
+        grandParent = parentFpool->parent;
 
         if (parentFpool != NULL)
         {
@@ -139,28 +144,60 @@ int32_t searchFileOrFolderIntoPool(Folder     *parentFolder,
 
             pFPool = parentFpool->child;
 
-            while (pFPool != NULL)
+            // if the folder contains elements
+            if (pFPool != NULL)
+            {
+                while (pFPool != NULL) 
+                {
+                    if (searchDir)
+                    {
+                        if (pFPool->folder != NULL
+                            && (strcmp(pFPool->folder->name, pName) == 0))
+                        {
+                            found = true; 
+                            break;
+                        }
+                        else if (strcmp(CURRENT_FOLDER, pName) == 0)
+                        {
+                            selectParent = true;
+                            found = true;
+                            break;
+                        }
+                        else if (strcmp(PARENT_FOLDER, pName) == 0) 
+                        {
+                            selectGrandParent = true;
+                            found = true;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        if (pFPool->file != NULL
+                            && (strcmp(pFPool->file->name, pName) == 0))
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    pFPool = pFPool->next;
+                }
+            }
+            else
             {
                 if (searchDir)
                 {
-                    if (pFPool->folder != NULL
-                        && (strcmp(pFPool->folder->name, pName) == 0))
+                    if (strcmp(CURRENT_FOLDER, pName) == 0)
                     {
+                        selectParent = true;
                         found = true;
-                        break;
+                    }
+                    else if (strcmp(PARENT_FOLDER, pName) == 0) 
+                    {
+                        selectGrandParent = true;
+                        found = true;
                     }
                 }
-                else
-                {
-                    if (pFPool->file != NULL
-                        && (strcmp(pFPool->file->name, pName) == 0))
-                    {
-                        found = true;
-                        break;
-                    }
-                }
-
-                pFPool = pFPool->next;
             }
 
             if (found)
@@ -169,7 +206,27 @@ int32_t searchFileOrFolderIntoPool(Folder     *parentFolder,
                 if (searchDir
                     && ppOutputFolder != NULL)
                 {
-                    *ppOutputFolder = pFPool->folder;
+                    if (selectParent)
+                    {
+                        *ppOutputFolder = parentFpool->folder;
+                    }
+                    else if (selectGrandParent)
+                    {
+                        //if the grand parent exist
+                        if (grandParent != NULL)
+                        {
+                            *ppOutputFolder = grandParent->folder;
+                        }
+                        else
+                        {
+                            //if not then select the parentFolder
+                            *ppOutputFolder = parentFpool->folder;
+                        }
+                    }
+                    else
+                    {
+                        *ppOutputFolder = pFPool->folder; 
+                    }
                 }
                 else if (!searchDir
                          && ppOutputFile != NULL) 

@@ -277,7 +277,7 @@ uint8_t createMenuWithMultipleOptions(const char * title,
     return optionSelected;
 }
 
-void parseString(const char *strToBeParsed, char separator, char ***opMatrix, uint32_t *oNumberOfElements)
+void parseString(const char *strToBeParsed, const char separator, char ***opMatrix, uint32_t *oNumberOfElements)
 {
     if (strToBeParsed != NULL
         && oNumberOfElements != NULL

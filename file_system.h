@@ -24,9 +24,14 @@ Folder * getCurrentFolder(void);
 char * getCurrentFolderName(void);
 bool sendInfoToHD(void);
 Folder * createRootFolder(void);
+Folder * getFolderFromPath(char *path);
+void setCurrentDirectory(Folder *pFolder);
 
 //Defines
 #define ROOT_FOLDER_NAME    "/"
+#define FOLDER_SEPARATOR    '/'
+#define PARENT_FOLDER       ".."
+#define CURRENT_FOLDER      "."
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"
