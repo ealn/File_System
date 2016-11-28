@@ -468,7 +468,21 @@ static int32_t runPwd(char **args, uint32_t nargs)
     if (args != NULL
         && nargs > 0)
     {
+        Folder *currentFolder = NULL;
+        char * pFullPath = NULL;
 
+        currentFolder = getCurrentFolder();
+        pFullPath = getFullPath(currentFolder);
+
+        if (pFullPath != NULL)
+        {
+            printf("%s", pFullPath);
+            MEMFREE(pFullPath);
+        }
+        else
+        {
+            ret = FAIL;
+        }
     }
 
     return ret;

@@ -84,7 +84,6 @@ int32_t createNewFpool(Folder *pFolder, File *pFile, bool isDir, Folder *pParent
         || pFile != NULL)
     {
         Fpool *pFPool = NULL;
-        Fpool *parentFPool = NULL;
 
         pFPool = allocFPool();
 

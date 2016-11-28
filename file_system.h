@@ -26,6 +26,7 @@ bool sendInfoToHD(void);
 Folder * createRootFolder(void);
 Folder * getFolderFromPath(char *path);
 void setCurrentDirectory(Folder *pFolder);
+char * getFullPath(Folder *pFolder);
 
 //Defines
 #define ROOT_FOLDER_NAME    "/"

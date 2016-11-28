@@ -145,3 +145,10 @@ void setCurrentDirectory(Folder *pFolder)
     g_currentFolder = pFolder;
 }
 
+char * getFullPath(Folder *pFolder)
+{
+    char * path = NULL;
+
+    return path;
+}
+
