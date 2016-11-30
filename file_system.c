@@ -216,7 +216,72 @@ void setCurrentDirectory(Folder *pFolder)
 
 char * getFullPath(Folder *pFolder)
 {
-    char * path = NULL;
+    char   * path = NULL;
+    Folder * tempFolder = NULL;
+    Folder **folderArray = NULL;
+    uint32_t n = 0;
+    int32_t  i = 0;
+    uint32_t index = 0;
+    uint32_t len = 0;
+
+    if (pFolder != NULL)
+    {
+        tempFolder = pFolder;
+
+        while (tempFolder != NULL)
+        {
+            len += strlen(tempFolder->name);
+            n++;
+            tempFolder = getParentFolderOfFolder(tempFolder); 
+        }
+
+        len += n  + 1; //add the directory separator and the null terminator
+        path = (char *)MEMALLOC(sizeof(char)*len);
+
+        if (path != NULL)
+        {
+            folderArray = (Folder **)MEMALLOC(sizeof(Folder *)*n);
+
+            if (folderArray != NULL)
+            {
+                tempFolder = pFolder; 
+
+                //insert elements to array
+                while (tempFolder != NULL)
+                {
+                    folderArray[i] = tempFolder;
+                    tempFolder = getParentFolderOfFolder(tempFolder);
+
+                    //if there is more folders
+                    if (tempFolder != NULL)
+                    {
+                        i++;
+                    }
+                }
+
+                while (i >= 0)
+                {
+                    len = strlen(folderArray[i]->name);
+                    strcpy(&path[index], folderArray[i]->name);
+
+                    index += len;
+
+                    //if the folder is not root and the index is not the last element
+                    if (!(strcmp(folderArray[i]->name, ROOT_FOLDER_NAME) == 0)
+                        && (i > 0))
+                    {
+                        //add the directory separator
+                        path[index] = FOLDER_SEPARATOR;
+                        index++;
+                    }
+
+                    i--; 
+                }
+
+                MEMFREE((void *)folderArray);
+            }
+        }
+    }
 
     return path;
 }

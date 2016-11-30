@@ -513,7 +513,7 @@ static int32_t runPwd(char **args, uint32_t nargs)
 
         if (pFullPath != NULL)
         {
-            printf("%s", pFullPath);
+            printf("%s\n", pFullPath);
             MEMFREE(pFullPath);
         }
         else
