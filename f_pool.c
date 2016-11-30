@@ -322,7 +322,7 @@ int32_t removeFileOrFolderFromPool(File * pFile, Folder *pFolder, bool isDir)
     return ret; 
 }
 
-int32_t printInfoOfPool(Folder * pFolder)
+int32_t printInfoOfPool(Folder * pFolder, bool showDetails)
 {
     int32_t ret = SUCCESS;
 
@@ -339,11 +339,11 @@ int32_t printInfoOfPool(Folder * pFolder)
             {
                 if (pFPool->isDir)
                 {
-                    printFolderInfo(pFPool->folder);
+                    printFolderInfo(pFPool->folder, showDetails);
                 }
                 else
                 {
-                    printFileInfo(pFPool->file);
+                    printFileInfo(pFPool->file, showDetails);
                 }
             }
             else 

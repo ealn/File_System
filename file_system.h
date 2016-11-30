@@ -24,9 +24,13 @@ Folder * getCurrentFolder(void);
 char * getCurrentFolderName(void);
 bool sendInfoToHD(void);
 Folder * createRootFolder(void);
-Folder * getFolderFromPath(char *path);
+Folder * getFolderFromPath(const char *path);
+int32_t getLastNameFromPath(const char *path, char **output);
 void setCurrentDirectory(Folder *pFolder);
 char * getFullPath(Folder *pFolder);
+Folder * getParentFolderOfFile(File *pFile);
+Folder * getParentFolderOfFolder(Folder *pFolder);
+Folder * getRootFolder(void);
 
 //Defines
 #define ROOT_FOLDER_NAME    "/"

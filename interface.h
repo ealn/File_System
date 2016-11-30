@@ -23,6 +23,7 @@ int32_t createFileIntoHardDrive(File *pFile);
 int32_t removeFileIntoHardDrive(File *pFile);
 char *  readDataFromFile(File *pFile);
 int32_t writeDataIntoFile(File *pFile, char *newInfo);
+int32_t updateFileIntoHardDrive(File *pFile);
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

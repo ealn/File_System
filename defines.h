@@ -41,6 +41,7 @@ struct _File
 {
     char *   name;
     char *   data;
+    char *   owner;
     uint16_t permissions;
     char     c_date[TIME_BUF_SIZE];        //creation date
     char     m_date[TIME_BUF_SIZE];        //modification date
@@ -54,6 +55,7 @@ struct _File
 struct _Folder
 {
     char *   name;
+    char *   owner;
     char     c_date[TIME_BUF_SIZE];    //creation date
     uint16_t permissions;
     Fpool   *fpool;
@@ -73,6 +75,9 @@ struct _Folder
 #define THERE_ARE_NOT_FILES       -6
 #define FOLDER_NOT_FOUND          -7
 #define FOLDER_ALREADY_EXIST      -8
+#define COMMAND_NOT_FOUND         -9
+
+#define PERM_BUF_SIZE   4
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

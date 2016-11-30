@@ -53,11 +53,41 @@ static void changeFileSize(File *pFile, uint32_t newSize)
     }
 }
 
-void printFileInfo(File *pFile)
+void printFileInfo(File *pFile, bool showDetails)
 {
     if (pFile != NULL)
     {
-        printf("%s\n", pFile->name);
+        if (showDetails)
+        {
+            char permissions[PERM_BUF_SIZE];
+
+            memset(permissions, 0, sizeof(char)*PERM_BUF_SIZE);
+
+            if (pFile->permissions & WRITE_ONLY)
+            {
+                permissions[0] = 'w';
+            }
+            if (pFile->permissions & READ_ONLY)
+            {
+                permissions[1] = 'r';
+            }
+            if (pFile->permissions & EXEC_ONLY)
+            {
+                permissions[2] = 'x';
+            }
+
+            printf("%s\t %s\t %d\t %s\t %s\t %s\n",
+                   permissions,
+                   pFile->owner,
+                   pFile->size,
+                   pFile->m_date,
+                   "",
+                   pFile->name); 
+        }
+        else
+        {
+            printf("%s\n", pFile->name); 
+        }
     }
 }
 
@@ -261,31 +291,58 @@ int32_t seekFile(Folder *parent, char *pName, uint32_t newPoint)
     return ret; 
 }
 
+int32_t updateModificationDate(File *pFile)
+{
+    int32_t ret = SUCCESS;
+
+    if (pFile != NULL)
+    {
+        getTimeStamp(pFile->m_date);
+
+        if (sendInfoToHD())
+        {
+            ret = updateFileIntoHardDrive(pFile);
+        }
+    }
+
+    return ret;
+}
+
 File * createNewFile(Folder *parent, char *pName, uint16_t permissions)
 {
     File * newFile = NULL;
     uint32_t nameSize = 0;
-    int32_t  ret = 0;
+    int32_t  ret = SUCCESS;
+    char    *currentUser = NULL;
+    uint32_t curUserSize = 0;
 
     if (pName != NULL)
     {
-        ret = searchFileOrFolderIntoPool(parent, pName, NULL, NULL, true);
+        ret = searchFileOrFolderIntoPool(parent, pName, NULL, NULL, false);
 
         if (ret == FILE_NOT_FOUND)
         {
             newFile = allocFile(); 
             nameSize = strlen(pName) + 1;  //add the \0 character
 
+            //TODO: send the user as parameter
+            currentUser = getCurrentUser();
+            curUserSize = strlen(currentUser) + 1;  //add the \0 character
+
             if (newFile != NULL)
             {
-                newFile->name = (char *)MEMALLOC(sizeof(char)* nameSize);
-                newFile->data = (char *)MEMALLOC(sizeof(char)* CHUNK_SIZE);
+                newFile->name =  (char *)MEMALLOC(sizeof(char)* nameSize);
+                newFile->data =  (char *)MEMALLOC(sizeof(char)* CHUNK_SIZE);
+                newFile->owner = (char *)MEMALLOC(sizeof(char)* curUserSize);
                 newFile->size = CHUNK_SIZE;
-                newFile->permissions = permissions;
+                //TODO: send permissions as parameter
+                newFile->permissions = READ_ONLY | WRITE_ONLY | EXEC_ONLY;
 
-                memcpy(newFile->name, pName, nameSize);
+                strcpy(newFile->name, pName);
+                strcpy(newFile->owner, currentUser);
 
                 getTimeStamp(newFile->c_date);
+                getTimeStamp(newFile->m_date);
 
                 ret = createNewFpool(NULL, newFile, false, parent);
 
@@ -322,9 +379,14 @@ int32_t destroyFile(File * pFile)
                 MEMFREE((void *)pFile->data);
             }
 
-            if (pFile->name)
+            if (pFile->name != NULL)
             {
                 MEMFREE((void *)pFile->name); 
+            }
+
+            if (pFile->owner != NULL)
+            {
+                MEMFREE((void *)pFile->owner);
             }
 
             freeFile(pFile);

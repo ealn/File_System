@@ -13,8 +13,12 @@
 #include "f_pool.h"
 #include "memutils.h"
 #include "trace.h"
+#include "file.h"
 #include "file_system.h"
 #include "interface.h"
+
+//Defines
+#define FOLDER_TAG    "<DIR>"
 
 //Implementation
 static Folder * allocFolder(void)
@@ -53,6 +57,10 @@ static int32_t freeFolderMemory(Folder *pFolder)
             if (pFolder->name != NULL) 
             {
                 MEMFREE((void *)pFolder->name); 
+            }
+            if (pFolder->owner != NULL)
+            {
+                MEMFREE((void *)pFolder->owner);
             }
 
             freeFolder(pFolder);
@@ -109,7 +117,9 @@ Folder * createNewFolder(Folder * parent, const char *pName, const char *pCreati
 {
     Folder * newFolder = NULL;
     uint32_t nameSize = 0;
-    int32_t  ret = 0;
+    int32_t  ret = SUCCESS;
+    char    *currentUser = NULL;
+    uint32_t curUserSize = 0;
 
     if (pName != NULL)
     {
@@ -120,10 +130,20 @@ Folder * createNewFolder(Folder * parent, const char *pName, const char *pCreati
             newFolder = allocFolder(); 
             nameSize = strlen(pName) + 1;  //add the \0 character
 
+            //TODO: send the user as parameter
+            currentUser = getCurrentUser();
+            curUserSize = strlen(currentUser) + 1;  //add the \0 character
+
             if (newFolder != NULL)
             {
-                newFolder->name = (char *)MEMALLOC(sizeof(char)* nameSize);
+                newFolder->name =  (char *)MEMALLOC(sizeof(char)* nameSize);
+                newFolder->owner = (char *)MEMALLOC(sizeof(char)* curUserSize);
+
                 strcpy(newFolder->name, pName);
+                strcpy(newFolder->owner, currentUser);
+
+                //TODO: send permissions as parameter
+                newFolder->permissions = READ_ONLY | WRITE_ONLY | EXEC_ONLY;
 
                 if (pCreationDate == NULL)
                 {
@@ -167,11 +187,41 @@ int32_t destroyFolder(Folder * pFolder, bool recursive)
     return ret;
 }
 
-void printFolderInfo(Folder * pFolder)
+void printFolderInfo(Folder * pFolder, bool showDetails)
 {
     if (pFolder != NULL)
     {
-        printf("%s\n", pFolder->name);
+        if (showDetails)
+        {
+            char permissions[PERM_BUF_SIZE];
+
+            memset(permissions, 0, sizeof(char)*PERM_BUF_SIZE);
+
+            if (pFolder->permissions & WRITE_ONLY)
+            {
+                permissions[0] = 'w';
+            }
+            if (pFolder->permissions & READ_ONLY)
+            {
+                permissions[1] = 'r';
+            }
+            if (pFolder->permissions & EXEC_ONLY)
+            {
+                permissions[2] = 'x';
+            }
+
+            printf("%s\t %s\t %d\t %s\t %s\t %s\n",
+                   permissions,
+                   pFolder->owner,
+                   0,
+                   pFolder->c_date,
+                   FOLDER_TAG,
+                   pFolder->name); 
+        }
+        else
+        {
+            printf("%s\n", pFolder->name); 
+        }
     }
 }
 

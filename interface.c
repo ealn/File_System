@@ -92,3 +92,14 @@ int32_t writeDataIntoFile(File *pFile, char *newInfo)
 
     return ret;
 }
+
+//This function will be used to update information
+//of file into hard drive for example when the shell
+//modifies the date.
+int32_t updateFileIntoHardDrive(File *pFile)
+{
+    int32_t ret = SUCCESS;
+
+    return ret;
+}
+

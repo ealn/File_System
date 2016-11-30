@@ -13,6 +13,7 @@
 #include "f_pool.h"
 #include "interface.h"
 #include "console_utils.h"
+#include "memutils.h"
 
 #define MAX_USER_NAME         10
 #define ROOT_USER             "root"
@@ -55,6 +56,11 @@ Folder * getCurrentFolder(void)
     return g_currentFolder;
 }
 
+Folder * getRootFolder(void)
+{
+    return g_rootFolder;
+}
+
 bool sendInfoToHD(void)
 {
     return sendInfoToHardDrive;
@@ -91,55 +97,116 @@ void closeFileSystem(void)
 
         //free the memory of whole file system
         destroyFolder(g_rootFolder, true);
+        getchar();
     }
 }
 
-Folder * getFolderFromPath(char *path)
+Folder * getFolderFromPath(const char *path)
 {
     Folder * pFolder = NULL;
     char   **listOfParms = NULL;
     uint32_t numberOfParms = 0;
     uint32_t i = 0;
     int32_t  ret = 0;
+    char    *copyPath;
+    uint32_t len = 0;
 
     if (path != NULL)
     {
-        parseString(path, FOLDER_SEPARATOR, &listOfParms, &numberOfParms);
+        len = strlen(path) + 1; //Add null terminator
 
-        if (path[0] == FOLDER_SEPARATOR)
-        {
-            pFolder = g_rootFolder;
-        }
-        else
-        {
-            pFolder = g_currentFolder; 
-        }
+        copyPath = (char *)MEMALLOC(sizeof(char)*len);
 
-        if (listOfParms != NULL)
+        if (copyPath != NULL)
         {
-            if (numberOfParms > 1)
+            //if this is absolute path
+            if (path[0] == FOLDER_SEPARATOR)
             {
-                for (i = 0; i < (numberOfParms - 1); i++)
-                {
-                    ret = searchFileOrFolderIntoPool(pFolder,
-                                                     listOfParms[i],
-                                                     NULL,
-                                                     &pFolder,
-                                                     true);
-                }
-
-                if (ret == FOLDER_NOT_FOUND)
-                {
-                    pFolder = NULL;
-                }
+                pFolder = g_rootFolder;
+                strcpy(copyPath, &path[1]);
+            }
+            else  //else this is a relative path
+            {
+                pFolder = g_currentFolder;
+                strcpy(copyPath, path);
             }
 
-            destroyStringsParsed(listOfParms, numberOfParms);
-        }
+            parseString(copyPath, FOLDER_SEPARATOR, &listOfParms, &numberOfParms);
 
+            if (listOfParms != NULL)
+            {
+                if (numberOfParms > 1)
+                {
+                    for (i = 0; i < (numberOfParms - 1); i++)
+                    {
+                        ret = searchFileOrFolderIntoPool(pFolder,
+                                                         listOfParms[i],
+                                                         NULL,
+                                                         &pFolder,
+                                                         true);
+                    }
+
+                    if (ret == FOLDER_NOT_FOUND)
+                    {
+                        pFolder = NULL;
+                    }
+                }
+
+                destroyStringsParsed(listOfParms, numberOfParms);
+            }
+
+            MEMFREE((void *)copyPath);
+        }
     }
 
     return pFolder;
+}
+
+int32_t getLastNameFromPath(const char *path, char **output)
+{
+    int32_t ret = SUCCESS;
+
+    if (path != NULL
+        && output != NULL)
+    {
+        char    **listOut = NULL;
+        uint32_t  numberOfElements = 0;
+        uint32_t  length = 0;
+        char     *copyPath;
+        uint32_t  len = 0;
+
+        len = strlen(path) + 1; //Add null terminator
+
+        copyPath = (char *)MEMALLOC(sizeof(char)*len);
+
+        if (copyPath != NULL)
+        {
+            //if this is absolute path
+            if (path[0] == FOLDER_SEPARATOR)
+            {
+                strcpy(copyPath, &path[1]);
+            }
+            else  //else this is a relative path
+            {
+                strcpy(copyPath, path);
+            }
+
+            parseString(copyPath, FOLDER_SEPARATOR, &listOut, &numberOfElements);
+
+            if (listOut != NULL)
+            {
+                length = strlen(listOut[numberOfElements - 1]) + 1;
+
+                *output = (char *)MEMALLOC(sizeof(char) * length);
+                memcpy(*output, listOut[numberOfElements - 1], sizeof(char) * (length - 1));
+                destroyStringsParsed(listOut, numberOfElements);
+            }
+
+            MEMFREE((void *)copyPath);
+        }
+    }
+
+    return ret; 
 }
 
 void setCurrentDirectory(Folder *pFolder)
@@ -154,3 +221,38 @@ char * getFullPath(Folder *pFolder)
     return path;
 }
 
+Folder * getParentFolderOfFile(File *pFile)
+{
+    Folder *parent = NULL;
+    Fpool  *parentPool = NULL;
+
+    if (pFile != NULL)
+    {
+        parentPool = pFile->fpool->parent;
+
+        if (parentPool != NULL)
+        {
+            parent = parentPool->folder;
+        }
+    }
+
+    return parent;
+}
+
+Folder * getParentFolderOfFolder(Folder *pFolder)
+{
+    Folder *parent = NULL;
+    Fpool  *parentPool = NULL;
+
+    if (pFolder != NULL)
+    {
+        parentPool = pFolder->fpool->parent;
+
+        if (parentPool != NULL)
+        {
+            parent = parentPool->folder;
+        }
+    }
+
+    return parent;
+}

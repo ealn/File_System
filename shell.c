@@ -29,6 +29,7 @@ static int32_t runCommand(char **args, uint32_t nargs);
 static int32_t runHelp(char **args, uint32_t nargs);
 static int32_t runCd(char **args, uint32_t nargs);
 static int32_t runLs(char **args, uint32_t nargs);
+static int32_t runLl(char **args, uint32_t nargs);
 static int32_t runDir(char **args, uint32_t nargs);
 static int32_t runRm(char **args, uint32_t nargs);
 static int32_t runMkdir(char **args, uint32_t nargs);
@@ -131,6 +132,8 @@ static void printOutput(int32_t ret)
             break;
         case FOLDER_ALREADY_EXIST:    printf("\nERROR: Folder already exist\n\n");
             break;
+        case COMMAND_NOT_FOUND:       printf("\nCommand not found\n\n");
+            break;
         default:
             break;
     }
@@ -152,32 +155,6 @@ static bool validateArg(char **args)
     return ret;
 }
 
-static int32_t getName(char *path, char **output)
-{
-    int32_t ret = SUCCESS;
-
-    if (path != NULL
-        && output != NULL)
-    {
-        char    **listOut = NULL;
-        uint32_t  numberOfElements = 0;
-        uint32_t  length = 0;
-
-        parseString(path, FOLDER_SEPARATOR, &listOut, &numberOfElements);
-
-        if (listOut != NULL)
-        {
-            length = strlen(listOut[numberOfElements - 1]) + 1;
-
-            *output = (char *)MEMALLOC(sizeof(char) * length);
-            memcpy(*output, listOut[numberOfElements - 1], sizeof(char) * (length - 1));
-            destroyStringsParsed(listOut, numberOfElements);
-        }
-    }
-
-    return ret; 
-}
-
 static int32_t runCommand(char **args, uint32_t nargs)
 {
     int32_t ret = SUCCESS;
@@ -196,6 +173,10 @@ static int32_t runCommand(char **args, uint32_t nargs)
         else if (strcmp("ls", args[0]) == 0)
         {
             ret = runLs(args, nargs);
+        }
+        else if (strcmp("ll", args[0]) == 0)
+        {
+            ret = runLl(args, nargs);
         }
         else if (strcmp("dir", args[0]) == 0)
         {
@@ -251,8 +232,7 @@ static int32_t runCommand(char **args, uint32_t nargs)
         }
         else
         {
-            ret = FAIL;
-            printf("\nCommand not suported\n");
+            ret = COMMAND_NOT_FOUND;
         }
     }
 
@@ -268,6 +248,7 @@ static int32_t runHelp(char **args, uint32_t nargs)
     printf("help    : show help\n");
     printf("cd      : change directory\n");
     printf("ls      : list files\n");
+    printf("ll      : list files with details\n");
     printf("dir     : show directory\n");
     printf("rm      : remove file\n");
     printf("mkdir   : create a directory\n");
@@ -295,15 +276,23 @@ static int32_t runCd(char **args, uint32_t nargs)
         char   * pName = NULL;
 
         pFolder = getFolderFromPath(args[1]);
-        getName(args[1], &pName);
+        getLastNameFromPath(args[1], &pName);
 
         if (pFolder != NULL)
         {
             ret = searchFileOrFolderIntoPool(pFolder, pName, NULL, &pFolder, true);
 
-            if (pFolder != NULL)
+            if (ret == SUCCESS
+                && pFolder != NULL)
             {
                 setCurrentDirectory(pFolder); 
+            }
+            //if the destination folder is the root folder  "/"
+            else if (pName == NULL
+                     && pFolder == getRootFolder())
+            {
+                setCurrentDirectory(pFolder);
+                ret = SUCCESS;
             }
         }
 
@@ -323,27 +312,102 @@ static int32_t runLs(char **args, uint32_t nargs)
     if (args != NULL
         && nargs > 0)
     {
+        Folder *parentFolder = NULL;
         Folder *pFolder = NULL;
+        File   *pFile   = NULL;
+        bool showDetails = false;
+
+        //TODO: search the flags
+        showDetails = false;
 
         if (nargs == 1)
         {
-            pFolder = getCurrentFolder();
-            ret = printInfoOfPool(pFolder);
+            parentFolder = getCurrentFolder();
+            ret = printInfoOfPool(parentFolder, showDetails);
         }
         else
         {
             char   * pName = NULL;
 
-            pFolder = getFolderFromPath(args[1]);
-            getName(args[1], &pName);
+            parentFolder = getFolderFromPath(args[1]);
+            getLastNameFromPath(args[1], &pName);
 
-            if (pFolder != NULL)
+            if (parentFolder != NULL)
             {
-                ret = searchFileOrFolderIntoPool(pFolder, pName, NULL, &pFolder, true);
+                //search for a folder
+                ret = searchFileOrFolderIntoPool(parentFolder, pName, NULL, &pFolder, true);
 
-                if (pFolder != NULL)
+                if (ret == SUCCESS
+                    && pFolder != NULL)
                 {
-                    ret = printInfoOfPool(pFolder);
+                    ret = printInfoOfPool(pFolder, showDetails);
+                }
+                else
+                {
+                    //search for a file
+                    ret = searchFileOrFolderIntoPool(parentFolder, pName, &pFile, NULL, false);
+
+                    if (ret == SUCCESS
+                        && pFile != NULL)
+                    {
+                        printFileInfo(pFile, showDetails);
+                    }
+                }
+            }
+
+            if (pName != NULL) 
+            {
+                MEMFREE(pName); 
+            }
+        }
+    }
+
+    return ret;
+}
+
+static int32_t runLl(char **args, uint32_t nargs)
+{
+    int32_t ret = SUCCESS;
+
+    if (args != NULL
+        && nargs > 0)
+    {
+        Folder *parentFolder = NULL;
+        Folder *pFolder = NULL;
+        File   *pFile   = NULL;
+
+        if (nargs == 1)
+        {
+            parentFolder = getCurrentFolder();
+            ret = printInfoOfPool(parentFolder, true);
+        }
+        else
+        {
+            char   * pName = NULL;
+
+            parentFolder = getFolderFromPath(args[1]);
+            getLastNameFromPath(args[1], &pName);
+
+            if (parentFolder != NULL)
+            {
+                //search for a folder
+                ret = searchFileOrFolderIntoPool(parentFolder, pName, NULL, &pFolder, true);
+
+                if (ret == SUCCESS
+                    && pFolder != NULL)
+                {
+                    ret = printInfoOfPool(pFolder, true);
+                }
+                else
+                {
+                    //search for a file
+                    ret = searchFileOrFolderIntoPool(parentFolder, pName, &pFile, NULL, false);
+
+                    if (ret == SUCCESS
+                        && pFile != NULL)
+                    {
+                        printFileInfo(pFile, true);
+                    }
                 }
             }
 
@@ -364,35 +428,7 @@ static int32_t runDir(char **args, uint32_t nargs)
     if (args != NULL
         && nargs > 0)
     {
-        Folder *pFolder = NULL;
-
-        if (nargs == 1)
-        {
-            pFolder = getCurrentFolder();
-            ret = printInfoOfPool(pFolder);
-        }
-        else
-        {
-            char   * pName = NULL;
-
-            pFolder = getFolderFromPath(args[1]);
-            getName(args[1], &pName);
-
-            if (pFolder != NULL)
-            {
-                ret = searchFileOrFolderIntoPool(pFolder, pName, NULL, &pFolder, true);
-
-                if (pFolder != NULL)
-                {
-                    ret = printInfoOfPool(pFolder);
-                }
-            }
-
-            if (pName != NULL) 
-            {
-                MEMFREE(pName); 
-            }
-        }
+        runLs(args, nargs);
     }
 
     return ret;
@@ -410,13 +446,14 @@ static int32_t runRm(char **args, uint32_t nargs)
         char   * pName = NULL;
 
         pFolder = getFolderFromPath(args[1]);
-        getName(args[1], &pName);
+        getLastNameFromPath(args[1], &pName);
 
         if (pFolder != NULL)
         {
             ret = searchFileOrFolderIntoPool(pFolder, pName, &pFile, NULL, false);
 
-            if (pFile != NULL)
+            if (ret == SUCCESS
+                && pFile != NULL)
             {
                 ret = destroyFile(pFile);
             }
@@ -445,7 +482,7 @@ static int32_t runMkdir(char **args, uint32_t nargs)
         for (i = 1; i < nargs; i++)
         {
             parentFolder = getFolderFromPath(args[i]);
-            getName(args[i], &pName);
+            getLastNameFromPath(args[i], &pName);
 
             if (parentFolder != NULL)
             {
@@ -523,18 +560,32 @@ static int32_t runTouch(char **args, uint32_t nargs)
     {
         uint32_t i = 0;
         Folder * parentFolder = NULL;
-        char  *  pName = NULL;
+        File   * pFile = NULL;
+        char   * pName = NULL;
 
         for (i = 1; i < nargs; i++)
         {
             parentFolder = getFolderFromPath(args[i]);
-            getName(args[i], &pName);
+            getLastNameFromPath(args[i], &pName);
 
-            //TODO: check if the file exist then the modification date needs to be changed
-            if (parentFolder != NULL)
+            ret = searchFileOrFolderIntoPool(parentFolder, pName, &pFile, NULL, false);
+
+            if (ret == SUCCESS
+                && pFile != NULL)
             {
-                createNewFile(parentFolder, pName, READ_ONLY | WRITE_ONLY | EXEC_ONLY);
+                ret = updateModificationDate(pFile);
             }
+            else if (parentFolder != NULL) 
+            {
+                pFile = createNewFile(parentFolder, pName, READ_ONLY | WRITE_ONLY | EXEC_ONLY);
+
+                if (pFile != NULL)
+                {
+                    ret = SUCCESS;
+                    pFile = NULL;
+                }
+            }
+
             if (pName != NULL) 
             {
                 MEMFREE(pName); 

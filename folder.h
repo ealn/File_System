@@ -18,7 +18,7 @@ extern "C" {
 
 Folder * createNewFolder(Folder * parent, const char *pName, const char *pCreationDate);
 int32_t destroyFolder(Folder * pFolder, bool recursive);
-void printFolderInfo(Folder * pFolder);
+void printFolderInfo(Folder * pFolder, bool showDetails);
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"
