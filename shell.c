@@ -25,6 +25,24 @@
 
 static void createPrompt(char *pPromptStr);
 static bool validateArg(char **args);
+
+static void printCdHelp(bool showFlagsDetails);
+static void printLsHelp(bool showFlagsDetails);
+static void printLlHelp(bool showFlagsDetails);
+static void printDirHelp(bool showFlagsDetails);
+static void printRmHelp(bool showFlagsDetails);
+static void printMkdirHelp(bool showFlagsDetails);
+static void printPwdHelp(bool showFlagsDetails);
+static void printCpHelp(bool showFlagsDetails);
+static void printMvHelp(bool showFlagsDetails);
+static void printTouchHelp(bool showFlagsDetails);
+static void printChmodHelp(bool showFlagsDetails);
+static void printSudoSuHelp(bool showFlagsDetails);
+static void printEchoHelp(bool showFlagsDetails);
+static void printEditHelp(bool showFlagsDetails);
+static void printCleanHelp(bool showFlagsDetails);
+static void printExitHelp(bool showFlagsDetails);
+
 static int32_t runCommand(char **args, uint32_t nargs);
 static int32_t runHelp(char **args, uint32_t nargs);
 static int32_t runCd(char **args, uint32_t nargs);
@@ -43,6 +61,7 @@ static int32_t runEcho(char **args, uint32_t nargs);
 static int32_t runEdit(char **args, uint32_t nargs);
 static int32_t runClean(char **args, uint32_t nargs);
 static int32_t runCat(char **args, uint32_t nargs);
+static int32_t runExit(char **args, uint32_t nargs);
 static void printOutput(int32_t ret);
 
 int32_t runShell(void)
@@ -132,7 +151,9 @@ static void printOutput(int32_t ret)
             break;
         case FOLDER_ALREADY_EXIST:    printf("\nERROR: Folder already exist\n\n");
             break;
-        case COMMAND_NOT_FOUND:       printf("\nCommand not found\n\n");
+        case COMMAND_NOT_FOUND:       printf("\nERROR: Command not found\n\n");
+            break;
+        case INVALID_PARAMETERS:      printf("\nERROR: Invalid Parameters\n\n");
             break;
         default:
             break;
@@ -145,6 +166,7 @@ static bool validateArg(char **args)
 
     if (args != NULL)
     {
+        //TODO: implement this command as function
         if (strcmp("exit", args[0]) == 0)
         {
             //exit of shell
@@ -230,6 +252,10 @@ static int32_t runCommand(char **args, uint32_t nargs)
         {
             ret = runCat(args, nargs);
         }
+        else if (strcmp("exit", args[0]) == 0)
+        {
+            ret = runExit(args, nargs);
+        }
         else
         {
             ret = COMMAND_NOT_FOUND;
@@ -239,12 +265,210 @@ static int32_t runCommand(char **args, uint32_t nargs)
     return ret;
 }
 
+static void printCdHelp(bool showFlagsDetails)
+{
+    printf("\ncd      : change directory\n");
+    printf("\nSintax:\n\ncd <flags[optionals]> <path>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+    }
+}
+
+static void printLsHelp(bool showFlagsDetails)
+{
+    printf("\nls      : list files\n");
+    printf("\nSintax:\n\nls <flags[optionals]> <path[optional]>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+        printf("-i    : Show file details\n");
+    }
+}
+
+static void printLlHelp(bool showFlagsDetails)
+{
+    printf("\nll      : list files with details\n");
+    printf("\nSintax:\n\nll <flags[optionals]> <path[optional]>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+    }
+}
+
+static void printDirHelp(bool showFlagsDetails)
+{
+    printf("\ndir     : show directory\n");
+    printf("\nSintax:\n\ndir <flags[optionals]> <path[optional]>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+        printf("-i    : Show file details\n");
+    }
+}
+
+static void printRmHelp(bool showFlagsDetails)
+{
+    printf("\nrm      : remove file\n");
+    printf("\nSintax:\n\nrm <flags[optionals]> <path>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+        printf("-f    : Force delete\n");
+        printf("-r    : Recursive\n");
+    }
+}
+
+static void printMkdirHelp(bool showFlagsDetails)
+{
+    printf("\nmkdir   : create a directory\n");
+    printf("\nSintax:\n\nmkdir <flags[optionals]> <path>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+    }
+}
+
+static void printPwdHelp(bool showFlagsDetails)
+{
+    printf("\npwd     : show current path\n");
+    printf("\nSintax:\n\npwd <flags[optionals]>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+    }
+}
+
+static void printCpHelp(bool showFlagsDetails)
+{
+    printf("\ncp      : copy file\n");
+    printf("\nSintax:\n\ncp <flags[optionals]> <source path> <destination path>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+        printf("-f    : Force copy (override if the file exist)\n");
+    }
+}
+
+static void printMvHelp(bool showFlagsDetails)
+{
+    printf("\nmv      : move file\n");
+    printf("\nSintax:\n\nmv <flags[optionals]> <source path> <destination path>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+        printf("-f    : Force move (override if the file exist)\n");
+    }
+}
+
+static void printTouchHelp(bool showFlagsDetails)
+{
+    printf("\ntouch   : touch file\n");
+    printf("\nSintax:\n\ntouch <flags[optionals]> <path>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+    }
+}
+
+static void printChmodHelp(bool showFlagsDetails)
+{
+    printf("\nchmod   : change permissions\n");
+    printf("\nSintax:\n\nchmod <flags[optionals]> <new mode> <path>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+    }
+}
+
+static void printSudoSuHelp(bool showFlagsDetails)
+{
+    printf("\nsudo su : change to root\n");
+    printf("\nSintax:\n\nsudo su <flags[optionals]>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+    }
+}
+
+static void printEchoHelp(bool showFlagsDetails)
+{
+    printf("\necho    : show info in screen\n");
+    printf("\nSintax:\n\necho <flags[optionals]> <string>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+    }
+}
+
+static void printEditHelp(bool showFlagsDetails)
+{
+    printf("\nedit    : edit file\n");
+    printf("\nSintax:\n\nedit <flags[optionals]> <path>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+    }
+}
+
+static void printCleanHelp(bool showFlagsDetails)
+{
+    printf("\nhelp    : show help\n");
+    printf("\nSintax:\n\nclean <flags[optionals]>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+    }
+}
+
+static void printExitHelp(bool showFlagsDetails)
+{
+    printf("\nexit    : exit of shell or exit of root mode\n");
+    printf("\nSintax:\n\nexit <flags[optionals]>\n\n");
+
+    if (showFlagsDetails)
+    {
+        printf("Flags:\n\n");
+        printf("-?    : Show help\n");
+    }
+}
+
+
 static int32_t runHelp(char **args, uint32_t nargs)
 {
     int32_t ret = SUCCESS;
 
-    printf("\nCommand suported:\n\n");
-    printf("exit    : exit of shell\n");
+    printf("\nCommands suported:\n\n");
     printf("help    : show help\n");
     printf("cd      : change directory\n");
     printf("ls      : list files\n");
@@ -261,6 +485,7 @@ static int32_t runHelp(char **args, uint32_t nargs)
     printf("echo    : show info in screen\n");
     printf("edit    : edit file\n");
     printf("clean   : clean screen\n\n");
+    printf("exit    : exit of shell or exit of root mode\n");
 
     return ret;
 }
@@ -669,6 +894,19 @@ static int32_t runClean(char **args, uint32_t nargs)
 }
 
 static int32_t runCat(char **args, uint32_t nargs)
+{
+    int32_t ret = SUCCESS;
+
+    if (args != NULL
+        && nargs > 0)
+    {
+        
+    }
+
+    return ret;
+}
+
+static int32_t runExit(char **args, uint32_t nargs)
 {
     int32_t ret = SUCCESS;
 

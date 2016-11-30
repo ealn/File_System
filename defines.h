@@ -76,6 +76,7 @@ struct _Folder
 #define FOLDER_NOT_FOUND          -7
 #define FOLDER_ALREADY_EXIST      -8
 #define COMMAND_NOT_FOUND         -9
+#define INVALID_PARAMETERS        -10
 
 #define PERM_BUF_SIZE   4
 
