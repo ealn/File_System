@@ -34,6 +34,77 @@ static void freeFolder(Folder *pFolder)
     }
 }
 
+static int32_t freeFolderMemory(Folder *pFolder)
+{
+    int32_t ret = SUCCESS;
+
+    if (pFolder != NULL)
+    {
+        ret = removeFileOrFolderFromPool(NULL, pFolder, true);
+
+        if (ret == SUCCESS
+            && sendInfoToHD())
+        {
+            ret = removeFolderIntoHardDrive(pFolder);
+        }
+
+        if (ret == SUCCESS)
+        {
+            if (pFolder->name != NULL) 
+            {
+                MEMFREE((void *)pFolder->name); 
+            }
+
+            freeFolder(pFolder);
+        }
+    }
+    else
+    {
+        ret = FAIL;
+    }
+
+    return ret;
+}
+
+int32_t destroyFolderRecursive(Fpool *pFpool)
+{
+    int32_t ret = SUCCESS;
+
+    if (pFpool != NULL)
+    {
+        Fpool * next;
+        Fpool * child;
+
+        next = pFpool->next;
+        child = pFpool->child;
+
+        //go to the childs
+        if (child != NULL)
+        {
+            ret = destroyFolderRecursive(child);
+        }
+
+        //destroy element
+        if (pFpool->isDir)
+        {
+            ret = freeFolderMemory(pFpool->folder);
+        }
+        else
+        {
+            ret = destroyFile(pFpool->file);
+        }
+
+        //check if there is more elements to the right
+        if (next != NULL)
+        {
+            // send the next element
+            ret = destroyFolderRecursive(next);
+        }
+    }
+
+    return ret;
+}
+
 Folder * createNewFolder(Folder * parent, const char *pName, const char *pCreationDate)
 {
     Folder * newFolder = NULL;
@@ -79,23 +150,18 @@ Folder * createNewFolder(Folder * parent, const char *pName, const char *pCreati
 
 int32_t destroyFolder(Folder * pFolder, bool recursive)
 {
-    int32_t ret = 0;
+    int32_t ret = SUCCESS;
 
     if (pFolder != NULL)
     {
-        if (sendInfoToHD())
+        if (recursive)
         {
-            removeFolderIntoHardDrive(pFolder);
+            ret = destroyFolderRecursive(pFolder->fpool);
         }
-        if (pFolder->name != NULL) 
+        else 
         {
-            MEMFREE((void *)pFolder->name); 
+            ret = freeFolderMemory(pFolder); 
         }
-
-        //TODO implement recursive
-        ret = removeFileOrFolderFromPool(NULL, pFolder, true);
-
-        freeFolder(pFolder);
     }
 
     return ret;

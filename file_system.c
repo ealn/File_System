@@ -87,6 +87,8 @@ void closeFileSystem(void)
 {
     if (g_rootFolder != NULL)
     {
+        sendInfoToHardDrive = false;
+
         //free the memory of whole file system
         destroyFolder(g_rootFolder, true);
     }

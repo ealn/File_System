@@ -330,6 +330,10 @@ int32_t destroyFile(File * pFile)
             freeFile(pFile);
         }
     }
+    else
+    {
+        ret = FAIL;
+    }
 
     return ret;
 }
