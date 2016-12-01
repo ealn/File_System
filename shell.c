@@ -760,11 +760,6 @@ static int32_t runCd(ParamList *pParamList)
             {
                 ret = INVALID_PARAMETERS;
             }
-
-            if (ret == INVALID_PARAMETERS)
-            {
-                printCdHelp(false);
-            }
         }
     }
 
@@ -840,11 +835,6 @@ static int32_t runLs(ParamList *pParamList)
             {
                 ret = INVALID_PARAMETERS;
             }
-
-            if (ret == INVALID_PARAMETERS)
-            {
-                printLsHelp(false);
-            }
         }
     }
 
@@ -917,11 +907,6 @@ static int32_t runLl(ParamList *pParamList)
             else
             {
                 ret = INVALID_PARAMETERS;
-            }
-
-            if (ret == INVALID_PARAMETERS)
-            {
-                printLlHelp(false);
             }
         }
     }
@@ -997,11 +982,6 @@ static int32_t runDir(ParamList *pParamList)
             else
             {
                 ret = INVALID_PARAMETERS;
-            }
-
-            if (ret == INVALID_PARAMETERS)
-            {
-                printDirHelp(false);
             }
         }
     }
@@ -1100,11 +1080,6 @@ static int32_t runRm(ParamList *pParamList)
             {
                 ret = INVALID_PARAMETERS;
             }
-
-            if (ret == INVALID_PARAMETERS)
-            {
-                printRmHelp(false);
-            }
         }
     }
 
@@ -1153,11 +1128,6 @@ static int32_t runMkdir(ParamList *pParamList)
             else
             {
                 ret = INVALID_PARAMETERS;
-            }
-
-            if (ret == INVALID_PARAMETERS)
-            {
-                printMkdirHelp(false);
             }
         }
     }
@@ -1294,11 +1264,6 @@ static int32_t runCp(ParamList *pParamList)
             {
                 ret = INVALID_PARAMETERS;
             }
-
-            if (ret == INVALID_PARAMETERS)
-            {
-                printCpHelp(false);
-            }
         }
     }
 
@@ -1411,11 +1376,6 @@ static int32_t runMv(ParamList *pParamList)
             {
                 ret = INVALID_PARAMETERS;
             }
-
-            if (ret == INVALID_PARAMETERS)
-            {
-                printMvHelp(false);
-            }
         }
     }
 
@@ -1480,11 +1440,6 @@ static int32_t runTouch(ParamList *pParamList)
             {
                 ret = INVALID_PARAMETERS;
             }
-
-            if (ret == INVALID_PARAMETERS)
-            {
-                printTouchHelp(false);
-            }
         }
     }
 
@@ -1511,11 +1466,6 @@ static int32_t runChmod(ParamList *pParamList)
             {
                 ret = INVALID_PARAMETERS;
             }
-
-            if (ret == INVALID_PARAMETERS)
-            {
-                printChmodHelp(false);
-            }
         }
     }
 
@@ -1541,11 +1491,6 @@ static int32_t runSudo(ParamList *pParamList)
             else
             {
                 ret = INVALID_PARAMETERS;
-            }
-
-            if (ret == INVALID_PARAMETERS)
-            {
-                printSudoSuHelp(false);
             }
         }
     }
