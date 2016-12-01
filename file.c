@@ -291,13 +291,22 @@ int32_t seekFile(Folder *parent, char *pName, uint32_t newPoint)
     return ret; 
 }
 
-int32_t updateModificationDate(File *pFile)
+static int32_t updateFileData(File *pFile, char *data, uint32_t size, uint32_t wPoint)
 {
     int32_t ret = SUCCESS;
 
-    if (pFile != NULL)
+    if (pFile != NULL
+        && pFile->data != NULL
+        && data != NULL
+        && (strcmp(pFile->data, data) != 0))
     {
-        getTimeStamp(pFile->m_date);
+        MEMFREE((void *)pFile->data);
+
+        pFile->data = (char *)MEMALLOC(sizeof(char)* size);
+        strcpy(pFile->data, data);
+
+        pFile->size = size;
+        pFile->w_point = wPoint;
 
         if (sendInfoToHD())
         {
@@ -306,6 +315,131 @@ int32_t updateModificationDate(File *pFile)
     }
 
     return ret;
+}
+
+static int32_t updateFileCreationDate(File *pFile, char *newCreationDate)
+{
+    int32_t ret = SUCCESS;
+
+    if (pFile != NULL)
+    {
+        if (newCreationDate != NULL
+            && (strlen(newCreationDate) == strlen(pFile->c_date)))
+        {
+            strcpy(pFile->c_date, newCreationDate);
+        }
+        else
+        {
+            //update from the system
+            getTimeStamp(pFile->c_date); 
+        }
+
+        if (sendInfoToHD())
+        {
+            ret = updateFileIntoHardDrive(pFile);
+        }
+    }
+
+    return ret;
+}
+
+int32_t updateFileModificationDate(File *pFile, char *newModDate)
+{
+    int32_t ret = SUCCESS;
+
+    if (pFile != NULL)
+    {
+        if (newModDate != NULL
+            && (strcmp(pFile->m_date, newModDate) != 0)
+            && (strlen(newModDate) == strlen(pFile->m_date)))
+        {
+            strcpy(pFile->m_date, newModDate);
+        }
+        else
+        {
+            //update from the system
+            getTimeStamp(pFile->m_date); 
+        }
+
+        if (sendInfoToHD())
+        {
+            ret = updateFileIntoHardDrive(pFile);
+        }
+    }
+
+    return ret;
+}
+
+int32_t updateFileOwner(File *pFile, char *newOwner)
+{
+    int32_t ret = SUCCESS;
+
+    if (pFile != NULL
+        && pFile->owner != NULL
+        && newOwner != NULL
+        && (strcmp(pFile->owner, newOwner) != 0))
+    {
+        uint32_t len = 0;
+
+        len = strlen(newOwner) + 1;
+
+        MEMFREE((void *)pFile->owner);
+
+        pFile->owner = (char *)MEMALLOC(sizeof(char)* len);
+        strcpy(pFile->owner, newOwner);
+
+        if (sendInfoToHD())
+        {
+            ret = updateFileIntoHardDrive(pFile);
+        }
+    }
+
+    return ret;
+}
+
+int32_t updateFilePermissions(File *pFile, uint16_t newPermissions)
+{
+    int32_t ret = SUCCESS;
+
+    if (pFile != NULL
+        && pFile->permissions != newPermissions)
+    {
+        pFile->permissions = newPermissions;
+
+        if (sendInfoToHD())
+        {
+            ret = updateFileIntoHardDrive(pFile);
+        }
+    }
+
+    return ret; 
+}
+
+int32_t copyFiles(File *srcFile, Folder *dstFolder)
+{
+    int32_t ret = SUCCESS;
+
+    if (srcFile != NULL
+        && dstFolder != NULL)
+    {
+        File *newFile;
+
+        newFile = createNewFile(dstFolder, srcFile->name, srcFile->permissions);
+
+        if (newFile != NULL)
+        {
+            updateFileData(newFile, srcFile->data, srcFile->size, srcFile->w_point);
+            updateFileCreationDate(newFile, srcFile->c_date);
+            updateFileModificationDate(newFile, srcFile->m_date);
+            updateFileOwner(newFile, srcFile->owner);
+        }
+        else
+        {
+            ret = FAIL;
+        }
+    }
+
+    return ret; 
 }
 
 File * createNewFile(Folder *parent, char *pName, uint16_t permissions)

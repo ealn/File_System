@@ -187,6 +187,19 @@ int32_t destroyFolder(Folder * pFolder, bool recursive)
     return ret;
 }
 
+uint32_t getNumberOfChilds(Folder *pFolder)
+{
+    uint32_t ret = 0;
+
+    if (pFolder != NULL
+        && pFolder->fpool != NULL)
+    {
+        ret = pFolder->fpool->nElements;
+    }
+
+    return ret;
+}
+
 void printFolderInfo(Folder * pFolder, bool showDetails)
 {
     if (pFolder != NULL)

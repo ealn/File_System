@@ -18,13 +18,40 @@
 #include "folder.h"
 #include "f_pool.h"
 
-#define PROMPT_SIZE   100
-#define DIST_NAME     "File-System-1.0: "
-#define SEPARATOR     "@"
-#define COMMAND_CHAR  " $ "
+#define PROMPT_SIZE      100
+#define DIST_NAME        "File-System-1.0: "
+#define SEPARATOR        "@"
+#define COMMAND_CHAR     " $ "
+#define SEND_TO_FILE     '>'
+#define APPEND_TO_FILE   ">>"
+#define FLAG_INDICATOR   '-'
+
+//Flags
+#define HELP_FLAG              "-?"
+#define LS_SHOW_DETAILS_FLAG   "-l"
+#define RM_FORCE_FLAG          "-f"
+#define RM_RECURSIVE_FLAG      "-r"
+#define CP_FORCE_FLAG          "-f"
+#define MV_FORCE_FLAG          "-f"
+
+//Structs
+typedef struct _Arguments
+{
+    char     *arg;
+    uint32_t  index;
+}Arguments;
+
+typedef struct _ParamList
+{
+    Arguments  * flags;
+    Arguments  * parameters;
+    uint32_t     numberOfFlags;
+    uint32_t     numberOfParameters;
+}ParamList;
 
 static void createPrompt(char *pPromptStr);
 static bool validateArg(char **args);
+static void printOutput(int32_t ret);
 
 static void printCdHelp(bool showFlagsDetails);
 static void printLsHelp(bool showFlagsDetails);
@@ -44,25 +71,198 @@ static void printCleanHelp(bool showFlagsDetails);
 static void printExitHelp(bool showFlagsDetails);
 
 static int32_t runCommand(char **args, uint32_t nargs);
-static int32_t runHelp(char **args, uint32_t nargs);
-static int32_t runCd(char **args, uint32_t nargs);
-static int32_t runLs(char **args, uint32_t nargs);
-static int32_t runLl(char **args, uint32_t nargs);
-static int32_t runDir(char **args, uint32_t nargs);
-static int32_t runRm(char **args, uint32_t nargs);
-static int32_t runMkdir(char **args, uint32_t nargs);
-static int32_t runPwd(char **args, uint32_t nargs);
-static int32_t runCp(char **args, uint32_t nargs);
-static int32_t runMv(char **args, uint32_t nargs);
-static int32_t runTouch(char **args, uint32_t nargs);
-static int32_t runChmod(char **args, uint32_t nargs);
-static int32_t runSudo(char **args, uint32_t nargs);
-static int32_t runEcho(char **args, uint32_t nargs);
-static int32_t runEdit(char **args, uint32_t nargs);
-static int32_t runClean(char **args, uint32_t nargs);
-static int32_t runCat(char **args, uint32_t nargs);
-static int32_t runExit(char **args, uint32_t nargs);
-static void printOutput(int32_t ret);
+static int32_t runHelp(ParamList *pParamList);
+static int32_t runCd(ParamList *pParamList);
+static int32_t runLs(ParamList *pParamList);
+static int32_t runLl(ParamList *pParamList);
+static int32_t runDir(ParamList *pParamList);
+static int32_t runRm(ParamList *pParamList);
+static int32_t runMkdir(ParamList *pParamList);
+static int32_t runPwd(ParamList *pParamList);
+static int32_t runCp(ParamList *pParamList);
+static int32_t runMv(ParamList *pParamList);
+static int32_t runTouch(ParamList *pParamList);
+static int32_t runChmod(ParamList *pParamList);
+static int32_t runSudo(ParamList *pParamList);
+static int32_t runEcho(ParamList *pParamList);
+static int32_t runEdit(ParamList *pParamList);
+static int32_t runClean(ParamList *pParamList);
+static int32_t runCat(ParamList *pParamList);
+static int32_t runExit(ParamList *pParamList);
+
+static Arguments * allocArguments(uint32_t numberOfArgs)
+{
+    Arguments * pArguments = NULL;
+    
+    if (numberOfArgs > 0)
+    {
+        pArguments = (Arguments *)MEMALLOC(sizeof(Arguments)*numberOfArgs); 
+    }
+    
+    return pArguments;
+}
+
+static void freeArguments(Arguments *pArguments)
+{
+    if (pArguments != NULL)
+    {
+        MEMFREE((void *)pArguments);
+    }
+}
+
+static ParamList * allocParamList(void)
+{
+    ParamList * pParamList = NULL;
+    
+    pParamList = (ParamList *)MEMALLOC(sizeof(ParamList));
+    
+    return pParamList;
+}
+
+static void freeParamList(ParamList *pParamList)
+{
+    if (pParamList != NULL)
+    {
+        MEMFREE((void *)pParamList);
+    }
+}
+
+static ParamList * createParamList(uint32_t numberOfFlags, uint32_t numberOfParameters)
+{
+    ParamList * pParamList = NULL;
+
+    pParamList = allocParamList();
+
+    if (pParamList != NULL)
+    {
+        pParamList->flags = allocArguments(numberOfFlags);
+        pParamList->parameters = allocArguments(numberOfParameters);
+        pParamList->numberOfFlags = numberOfFlags;
+        pParamList->numberOfParameters = numberOfParameters;
+    }
+
+    return pParamList; 
+}
+
+static void destroyParamList(ParamList * pParamList)
+{
+    if (pParamList != NULL)
+    {
+        if (pParamList->flags != NULL)
+        {
+            freeArguments(pParamList->flags);
+        }
+        if (pParamList->parameters != NULL)
+        {
+            freeArguments(pParamList->flags);
+        }
+
+        freeParamList(pParamList);
+    }
+}
+
+static Arguments * getArgumentAtIndex(Arguments * pArguments, uint32_t index)
+{
+    Arguments * pArg = NULL;
+
+    if (pArguments != NULL)
+    {
+        pArg = pArguments + index;
+    }
+
+    return pArg; 
+}
+
+static ParamList * processParameters(char **args, uint32_t nargs)
+{
+    ParamList * pParamList = NULL;
+
+    if (args != NULL
+        && nargs > 0)
+    {
+        Arguments * pArg = NULL;
+        char      * argument = NULL;
+        uint32_t    i = 0;
+        uint32_t    indexFlags = 0;
+        uint32_t    indexParams = 0;
+        uint32_t    numberOfFlags = 0;
+        uint32_t    numberOfParameters = 0;
+
+        //calculate the number of flags
+        if (nargs > 1)
+        {
+            for (i = 1; i < nargs; i++) 
+            {
+                argument = args[i];
+
+                if (argument[0] == FLAG_INDICATOR
+                    || argument[0] == SEND_TO_FILE)
+                {
+                    numberOfFlags++;
+                }
+                else
+                {
+                    numberOfParameters++;
+                }
+            }
+        }
+
+        //create new parameter list
+        pParamList = createParamList(numberOfFlags, numberOfParameters);
+
+        //Add arguments to the list of parameters
+        if (nargs > 1)
+        {
+            for (i = 1; i < nargs; i++) 
+            {
+                argument = args[i];
+
+                if (argument[0] == FLAG_INDICATOR
+                    || argument[0] == SEND_TO_FILE)
+                {
+                    pArg = getArgumentAtIndex(pParamList->flags, indexFlags);
+                    indexFlags++;
+                }
+                else
+                {
+                    pArg = getArgumentAtIndex(pParamList->parameters, indexParams);
+                    indexParams++;
+                }
+
+                pArg->arg = argument;
+                pArg->index = i;
+            }
+        }
+    }
+
+    return pParamList;
+}
+
+static bool searchFlag(ParamList * pParamList, const char *flag)
+{
+    bool ret = false;
+
+    if (pParamList != NULL
+        && pParamList->flags != NULL
+        && pParamList->numberOfFlags > 0)
+    {
+        Arguments *pArg = NULL;
+        uint32_t   i = 0;
+
+        for (i = 0; i < pParamList->numberOfFlags; i++)
+        {
+            pArg = getArgumentAtIndex(pParamList->flags, i);
+
+            if (pArg != NULL
+                && strcmp(pArg->arg, flag) == 0)
+            {
+                ret = true;
+            }
+        }
+    }
+
+    return ret; 
+}
 
 int32_t runShell(void)
 {
@@ -135,25 +335,31 @@ static void printOutput(int32_t ret)
 {
     switch (ret)
     {
-        case FAIL:                    printf("\nERROR: Something wrong happened with the command\n\n");
+        case FAIL:                        printf("\nERROR: Something wrong happened with the command\n\n");
+            break;                      
+        case FILE_NOT_FOUND:              printf("\nERROR: File not found\n\n");
+            break;                      
+        case FILE_ALREADY_EXIST:          printf("\nERROR: File already exist\n\n");
+            break;                      
+        case FILE_IS_ALREADY_OPENED:      printf("\nERROR: File already opened\n\n");
+            break;                      
+        case FILE_IS_ALREADY_CLOSED:      printf("\nERROR: File already closed\n\n");
+            break;                      
+        case THERE_ARE_NOT_FILES:         printf("\nERROR: There are not files\n\n");
+            break;                      
+        case FOLDER_NOT_FOUND:            printf("\nERROR: Folder not found\n\n");
+            break;                      
+        case FOLDER_ALREADY_EXIST:        printf("\nERROR: Folder already exist\n\n");
+            break;                      
+        case COMMAND_NOT_FOUND:           printf("\nERROR: Command not found\n\n");
+            break;                      
+        case INVALID_PARAMETERS:          printf("\nERROR: Invalid Parameters\nFor more information type the command followed by the flag -?\n\n");
+            break;                      
+        case FILE_CAN_NOT_BE_DELETED:     printf("\nERROR: File can not be deleted\n\n");
             break;
-        case FILE_NOT_FOUND:          printf("\nERROR: File not found\n\n");
+        case FOLDER_CAN_NOT_BE_DELETED:   printf("\nERROR: Folder can not be deleted\n\n");
             break;
-        case FILE_ALREADY_EXIST:      printf("\nERROR: File already exist\n\n");
-            break;
-        case FILE_IS_ALREADY_OPENED:  printf("\nERROR: File already opened\n\n");
-            break;
-        case FILE_IS_ALREADY_CLOSED:  printf("\nERROR: File already closed\n\n");
-            break;
-        case THERE_ARE_NOT_FILES:     printf("\nERROR: There are not files\n\n");
-            break;
-        case FOLDER_NOT_FOUND:        printf("\nERROR: Folder not found\n\n");
-            break;
-        case FOLDER_ALREADY_EXIST:    printf("\nERROR: Folder already exist\n\n");
-            break;
-        case COMMAND_NOT_FOUND:       printf("\nERROR: Command not found\n\n");
-            break;
-        case INVALID_PARAMETERS:      printf("\nERROR: Invalid Parameters\n\n");
+        case FILE_CAN_NOT_BE_OVERWRITTEN: printf("\nERROR: File can not be overwritten\n\n");
             break;
         default:
             break;
@@ -179,87 +385,92 @@ static bool validateArg(char **args)
 
 static int32_t runCommand(char **args, uint32_t nargs)
 {
-    int32_t ret = SUCCESS;
+    int32_t     ret = SUCCESS;
+    ParamList * pParamList = NULL;
 
     if (args != NULL)
     {
+        pParamList = processParameters(args, nargs);
+
         //list of commands
         if (strcmp("help", args[0]) == 0)
         {
-            ret = runHelp(args, nargs);
+            ret = runHelp(pParamList);
         }
         else if (strcmp("cd", args[0]) == 0)
         {
-            ret = runCd(args, nargs);
+            ret = runCd(pParamList);
         }
         else if (strcmp("ls", args[0]) == 0)
         {
-            ret = runLs(args, nargs);
+            ret = runLs(pParamList);
         }
         else if (strcmp("ll", args[0]) == 0)
         {
-            ret = runLl(args, nargs);
+            ret = runLl(pParamList);
         }
         else if (strcmp("dir", args[0]) == 0)
         {
-            ret = runDir(args, nargs);
+            ret = runDir(pParamList);
         }
         else if (strcmp("rm", args[0]) == 0) 
         {
-            ret = runRm(args, nargs);
+            ret = runRm(pParamList);
         }
         else if (strcmp("mkdir", args[0]) == 0)
         {
-            ret = runMkdir(args, nargs);
+            ret = runMkdir(pParamList);
         }
         else if (strcmp("pwd", args[0]) == 0)
         {
-            ret = runPwd(args, nargs);
+            ret = runPwd(pParamList);
         }
         else if (strcmp("cp", args[0]) == 0)
         {
-            ret = runCp(args, nargs);
+            ret = runCp(pParamList);
         }
         else if (strcmp("mv", args[0]) == 0)
         {
-            ret = runMv(args, nargs);
+            ret = runMv(pParamList);
         }
         else if (strcmp("touch", args[0]) == 0)
         {
-            ret = runTouch(args, nargs);
+            ret = runTouch(pParamList);
         }
         else if (strcmp("chmod", args[0]) == 0)
         {
-            ret = runChmod(args, nargs);
+            ret = runChmod(pParamList);
         }
         else if (strcmp("sudo", args[0]) == 0)
         {
-            ret = runSudo(args, nargs);
+            ret = runSudo(pParamList);
         }
         else if (strcmp("echo", args[0]) == 0)
         {
-            ret = runEcho(args, nargs);
+            ret = runEcho(pParamList);
         }
         else if (strcmp("edit", args[0]) == 0)
         {
-            ret = runEdit(args, nargs);
+            ret = runEdit(pParamList);
         }
         else if (strcmp("clean", args[0]) == 0)
         {
-            ret = runClean(args, nargs);
+            ret = runClean(pParamList);
         }
         else if (strcmp("cat", args[0]) == 0)
         {
-            ret = runCat(args, nargs);
+            ret = runCat(pParamList);
         }
         else if (strcmp("exit", args[0]) == 0)
         {
-            ret = runExit(args, nargs);
+            ret = runExit(pParamList);
         }
         else
         {
             ret = COMMAND_NOT_FOUND;
         }
+
+        destroyParamList(pParamList);
     }
 
     return ret;
@@ -464,7 +675,7 @@ static void printExitHelp(bool showFlagsDetails)
 }
 
 
-static int32_t runHelp(char **args, uint32_t nargs)
+static int32_t runHelp(ParamList *pParamList)
 {
     int32_t ret = SUCCESS;
 
@@ -484,105 +695,155 @@ static int32_t runHelp(char **args, uint32_t nargs)
     printf("sudo su : change to root\n");
     printf("echo    : show info in screen\n");
     printf("edit    : edit file\n");
-    printf("clean   : clean screen\n\n");
-    printf("exit    : exit of shell or exit of root mode\n");
+    printf("clean   : clean screen\n");
+    printf("exit    : exit of shell or exit of root mode\n\n");
+    printf("For more information type the command followed by the flag -?\n");
+    printf("Example:\n\ncp -?\n\n");
 
     return ret;
 }
 
-static int32_t runCd(char **args, uint32_t nargs)
+static int32_t runCd(ParamList *pParamList)
 {
     int32_t ret = SUCCESS;
 
-    if (args != NULL
-        && nargs > 1)
+    if (pParamList != NULL)
     {
-        Folder * pFolder = NULL;
-        char   * pName = NULL;
-
-        pFolder = getFolderFromPath(args[1]);
-        getLastNameFromPath(args[1], &pName);
-
-        if (pFolder != NULL)
+        if (searchFlag(pParamList, HELP_FLAG))
         {
-            ret = searchFileOrFolderIntoPool(pFolder, pName, NULL, &pFolder, true);
-
-            if (ret == SUCCESS
-                && pFolder != NULL)
-            {
-                setCurrentDirectory(pFolder); 
-            }
-            //if the destination folder is the root folder  "/"
-            else if (pName == NULL
-                     && pFolder == getRootFolder())
-            {
-                setCurrentDirectory(pFolder);
-                ret = SUCCESS;
-            }
+            printCdHelp(true);
         }
-
-        if (pName != NULL) 
+        else
         {
-            MEMFREE(pName); 
+            if (pParamList->numberOfParameters == 0)
+            {
+                ret = INVALID_PARAMETERS;
+            }
+            else if (pParamList->numberOfParameters == 1)
+            {
+                Folder    * pFolder = NULL; 
+                char      * pName = NULL;
+                Arguments * pArg = NULL;
+                
+                pArg = getArgumentAtIndex(pParamList->parameters, 0);
+                
+                if (pArg != NULL)
+                {
+                    pFolder = getFolderFromPath(pArg->arg); 
+                    getLastNameFromPath(pArg->arg, &pName);
+                
+                    if (pFolder != NULL)
+                    {
+                        ret = searchFileOrFolderIntoPool(pFolder, pName, NULL, &pFolder, true);
+                
+                        if (ret == SUCCESS
+                            && pFolder != NULL)
+                        {
+                            setCurrentDirectory(pFolder); 
+                        }
+                        //if the destination folder is the root folder  "/"
+                        else if (pName == NULL
+                                 && pFolder == getRootFolder())
+                        {
+                            setCurrentDirectory(pFolder);
+                            ret = SUCCESS;
+                        }
+                    }
+                
+                    if (pName != NULL) 
+                    {
+                        MEMFREE(pName); 
+                    }
+                }
+            }
+            else
+            {
+                ret = INVALID_PARAMETERS;
+            }
+
+            if (ret == INVALID_PARAMETERS)
+            {
+                printCdHelp(false);
+            }
         }
     }
 
     return ret; 
 }
 
-static int32_t runLs(char **args, uint32_t nargs)
+static int32_t runLs(ParamList *pParamList)
 {
     int32_t ret = SUCCESS;
 
-    if (args != NULL
-        && nargs > 0)
+    if (pParamList != NULL)
     {
-        Folder *parentFolder = NULL;
-        Folder *pFolder = NULL;
-        File   *pFile   = NULL;
-        bool showDetails = false;
-
-        //TODO: search the flags
-        showDetails = false;
-
-        if (nargs == 1)
+        if (searchFlag(pParamList, HELP_FLAG))
         {
-            parentFolder = getCurrentFolder();
-            ret = printInfoOfPool(parentFolder, showDetails);
+            printLsHelp(true);
         }
         else
         {
-            char   * pName = NULL;
+            Folder *parentFolder = NULL; 
+            Folder *pFolder = NULL;
+            File   *pFile   = NULL;
+            char   *pName = NULL;
+            bool    showDetails = false;
 
-            parentFolder = getFolderFromPath(args[1]);
-            getLastNameFromPath(args[1], &pName);
+            showDetails = searchFlag(pParamList, LS_SHOW_DETAILS_FLAG);
 
-            if (parentFolder != NULL)
+            if (pParamList->numberOfParameters == 0)
             {
-                //search for a folder
-                ret = searchFileOrFolderIntoPool(parentFolder, pName, NULL, &pFolder, true);
+                parentFolder = getCurrentFolder();
+                ret = printInfoOfPool(parentFolder, showDetails);
+            }
+            else if (pParamList->numberOfParameters == 1) 
+            {
+                Arguments * pArg = NULL;
+                
+                pArg = getArgumentAtIndex(pParamList->parameters, 0);
 
-                if (ret == SUCCESS
-                    && pFolder != NULL)
+                if (pArg != NULL)
                 {
-                    ret = printInfoOfPool(pFolder, showDetails);
-                }
-                else
-                {
-                    //search for a file
-                    ret = searchFileOrFolderIntoPool(parentFolder, pName, &pFile, NULL, false);
+                    parentFolder = getFolderFromPath(pArg->arg); 
+                    getLastNameFromPath(pArg->arg, &pName);
 
-                    if (ret == SUCCESS
-                        && pFile != NULL)
+                    if (parentFolder != NULL)
                     {
-                        printFileInfo(pFile, showDetails);
+                        //search for a folder
+                        ret = searchFileOrFolderIntoPool(parentFolder, pName, NULL, &pFolder, true);
+
+                        if (ret == SUCCESS
+                            && pFolder != NULL)
+                        {
+                            ret = printInfoOfPool(pFolder, showDetails);
+                        }
+                        else //if the folder was not found
+                        {
+                            //search for a file
+                            ret = searchFileOrFolderIntoPool(parentFolder, pName, &pFile, NULL, false);
+
+                            if (ret == SUCCESS
+                                && pFile != NULL)
+                            {
+                                printFileInfo(pFile, showDetails);
+                            }
+                        }
+                    }
+
+                    if (pName != NULL) 
+                    {
+                        MEMFREE(pName); 
                     }
                 }
             }
-
-            if (pName != NULL) 
+            else
             {
-                MEMFREE(pName); 
+                ret = INVALID_PARAMETERS;
+            }
+
+            if (ret == INVALID_PARAMETERS)
+            {
+                printLsHelp(false);
             }
         }
     }
@@ -590,55 +851,77 @@ static int32_t runLs(char **args, uint32_t nargs)
     return ret;
 }
 
-static int32_t runLl(char **args, uint32_t nargs)
+static int32_t runLl(ParamList *pParamList)
 {
     int32_t ret = SUCCESS;
 
-    if (args != NULL
-        && nargs > 0)
+    if (pParamList != NULL)
     {
-        Folder *parentFolder = NULL;
-        Folder *pFolder = NULL;
-        File   *pFile   = NULL;
-
-        if (nargs == 1)
+        if (searchFlag(pParamList, HELP_FLAG))
         {
-            parentFolder = getCurrentFolder();
-            ret = printInfoOfPool(parentFolder, true);
+            printLlHelp(true);
         }
         else
         {
-            char   * pName = NULL;
+            Folder *parentFolder = NULL; 
+            Folder *pFolder = NULL;
+            File   *pFile   = NULL;
+            char   *pName = NULL;
+            bool    showDetails = true;
 
-            parentFolder = getFolderFromPath(args[1]);
-            getLastNameFromPath(args[1], &pName);
-
-            if (parentFolder != NULL)
+            if (pParamList->numberOfParameters == 0)
             {
-                //search for a folder
-                ret = searchFileOrFolderIntoPool(parentFolder, pName, NULL, &pFolder, true);
+                parentFolder = getCurrentFolder();
+                ret = printInfoOfPool(parentFolder, showDetails);
+            }
+            else if (pParamList->numberOfParameters == 1) 
+            {
+                Arguments * pArg = NULL;
+                
+                pArg = getArgumentAtIndex(pParamList->parameters, 0);
 
-                if (ret == SUCCESS
-                    && pFolder != NULL)
+                if (pArg != NULL)
                 {
-                    ret = printInfoOfPool(pFolder, true);
-                }
-                else
-                {
-                    //search for a file
-                    ret = searchFileOrFolderIntoPool(parentFolder, pName, &pFile, NULL, false);
+                    parentFolder = getFolderFromPath(pArg->arg); 
+                    getLastNameFromPath(pArg->arg, &pName);
 
-                    if (ret == SUCCESS
-                        && pFile != NULL)
+                    if (parentFolder != NULL)
                     {
-                        printFileInfo(pFile, true);
+                        //search for a folder
+                        ret = searchFileOrFolderIntoPool(parentFolder, pName, NULL, &pFolder, true);
+
+                        if (ret == SUCCESS
+                            && pFolder != NULL)
+                        {
+                            ret = printInfoOfPool(pFolder, showDetails);
+                        }
+                        else //if the folder was not found
+                        {
+                            //search for a file
+                            ret = searchFileOrFolderIntoPool(parentFolder, pName, &pFile, NULL, false);
+
+                            if (ret == SUCCESS
+                                && pFile != NULL)
+                            {
+                                printFileInfo(pFile, showDetails);
+                            }
+                        }
+                    }
+
+                    if (pName != NULL) 
+                    {
+                        MEMFREE(pName); 
                     }
                 }
             }
-
-            if (pName != NULL) 
+            else
             {
-                MEMFREE(pName); 
+                ret = INVALID_PARAMETERS;
+            }
+
+            if (ret == INVALID_PARAMETERS)
+            {
+                printLlHelp(false);
             }
         }
     }
@@ -646,174 +929,79 @@ static int32_t runLl(char **args, uint32_t nargs)
     return ret;
 }
 
-static int32_t runDir(char **args, uint32_t nargs)
+static int32_t runDir(ParamList *pParamList)
 {
     int32_t ret = SUCCESS;
 
-    if (args != NULL
-        && nargs > 0)
+    if (pParamList != NULL)
     {
-        runLs(args, nargs);
-    }
-
-    return ret;
-}
-
-static int32_t runRm(char **args, uint32_t nargs)
-{
-    int32_t ret = SUCCESS;
-
-    if (args != NULL
-        && nargs > 0)
-    {
-        Folder * pFolder = NULL;
-        File   * pFile = NULL;
-        char   * pName = NULL;
-
-        pFolder = getFolderFromPath(args[1]);
-        getLastNameFromPath(args[1], &pName);
-
-        if (pFolder != NULL)
+        if (searchFlag(pParamList, HELP_FLAG))
         {
-            ret = searchFileOrFolderIntoPool(pFolder, pName, &pFile, NULL, false);
-
-            if (ret == SUCCESS
-                && pFile != NULL)
-            {
-                ret = destroyFile(pFile);
-            }
-        }
-
-        if (pName != NULL) 
-        {
-            MEMFREE(pName); 
-        }
-    }
-
-    return ret;
-}
-
-static int32_t runMkdir(char **args, uint32_t nargs)
-{
-    int32_t ret = SUCCESS;
-
-    if (args != NULL
-        && nargs > 1)
-    {
-        uint32_t i = 0;
-        Folder * parentFolder = NULL;
-        char  *  pName = NULL;
-
-        for (i = 1; i < nargs; i++)
-        {
-            parentFolder = getFolderFromPath(args[i]);
-            getLastNameFromPath(args[i], &pName);
-
-            if (parentFolder != NULL)
-            {
-                createNewFolder(parentFolder, pName, NULL);
-            }
-            if (pName != NULL) 
-            {
-                MEMFREE(pName); 
-            }
-        }
-    }
-
-    return ret;
-}
-
-static int32_t runPwd(char **args, uint32_t nargs)
-{
-    int32_t ret = SUCCESS;
-
-    if (args != NULL
-        && nargs > 0)
-    {
-        Folder *currentFolder = NULL;
-        char * pFullPath = NULL;
-
-        currentFolder = getCurrentFolder();
-        pFullPath = getFullPath(currentFolder);
-
-        if (pFullPath != NULL)
-        {
-            printf("%s\n", pFullPath);
-            MEMFREE(pFullPath);
+            printDirHelp(true);
         }
         else
         {
-            ret = FAIL;
-        }
-    }
+            Folder *parentFolder = NULL; 
+            Folder *pFolder = NULL;
+            File   *pFile   = NULL;
+            char   *pName = NULL;
+            bool    showDetails = true;
 
-    return ret;
-}
+            showDetails = searchFlag(pParamList, LS_SHOW_DETAILS_FLAG);
 
-static int32_t runCp(char **args, uint32_t nargs)
-{
-    int32_t ret = SUCCESS;
-
-    if (args != NULL
-        && nargs > 0)
-    {
-
-    }
-
-    return ret;
-}
-
-static int32_t runMv(char **args, uint32_t nargs)
-{
-    int32_t ret = SUCCESS;
-
-    if (args != NULL
-        && nargs > 0)
-    {
-
-    }
-
-    return ret;
-}
-
-static int32_t runTouch(char **args, uint32_t nargs)
-{
-    int32_t ret = SUCCESS;
-
-    if (args != NULL
-        && nargs > 0)
-    {
-        uint32_t i = 0;
-        Folder * parentFolder = NULL;
-        File   * pFile = NULL;
-        char   * pName = NULL;
-
-        for (i = 1; i < nargs; i++)
-        {
-            parentFolder = getFolderFromPath(args[i]);
-            getLastNameFromPath(args[i], &pName);
-
-            ret = searchFileOrFolderIntoPool(parentFolder, pName, &pFile, NULL, false);
-
-            if (ret == SUCCESS
-                && pFile != NULL)
+            if (pParamList->numberOfParameters == 0)
             {
-                ret = updateModificationDate(pFile);
+                parentFolder = getCurrentFolder();
+                ret = printInfoOfPool(parentFolder, showDetails);
             }
-            else if (parentFolder != NULL) 
+            else if (pParamList->numberOfParameters == 1) 
             {
-                pFile = createNewFile(parentFolder, pName, READ_ONLY | WRITE_ONLY | EXEC_ONLY);
+                Arguments * pArg = NULL;
+                
+                pArg = getArgumentAtIndex(pParamList->parameters, 0);
 
-                if (pFile != NULL)
+                if (pArg != NULL)
                 {
-                    ret = SUCCESS;
-                    pFile = NULL;
+                    parentFolder = getFolderFromPath(pArg->arg); 
+                    getLastNameFromPath(pArg->arg, &pName);
+
+                    if (parentFolder != NULL)
+                    {
+                        //search for a folder
+                        ret = searchFileOrFolderIntoPool(parentFolder, pName, NULL, &pFolder, true);
+
+                        if (ret == SUCCESS
+                            && pFolder != NULL)
+                        {
+                            ret = printInfoOfPool(pFolder, showDetails);
+                        }
+                        else //if the folder was not found
+                        {
+                            //search for a file
+                            ret = searchFileOrFolderIntoPool(parentFolder, pName, &pFile, NULL, false);
+
+                            if (ret == SUCCESS
+                                && pFile != NULL)
+                            {
+                                printFileInfo(pFile, showDetails);
+                            }
+                        }
+                    }
+
+                    if (pName != NULL) 
+                    {
+                        MEMFREE(pName); 
+                    }
                 }
             }
-
-            if (pName != NULL) 
+            else
             {
-                MEMFREE(pName); 
+                ret = INVALID_PARAMETERS;
+            }
+
+            if (ret == INVALID_PARAMETERS)
+            {
+                printDirHelp(false);
             }
         }
     }
@@ -821,58 +1009,587 @@ static int32_t runTouch(char **args, uint32_t nargs)
     return ret;
 }
 
-static int32_t runChmod(char **args, uint32_t nargs)
+static int32_t runRm(ParamList *pParamList)
 {
     int32_t ret = SUCCESS;
 
-    if (args != NULL
-        && nargs > 0)
+    if (pParamList != NULL)
     {
-
-    }
-
-    return ret;
-}
-
-static int32_t runSudo(char **args, uint32_t nargs)
-{
-    int32_t ret = SUCCESS;
-
-    if (args != NULL
-        && nargs > 0)
-    {
-
-    }
-
-    return ret;
-}
-
-static int32_t runEcho(char **args, uint32_t nargs)
-{
-    int32_t ret = SUCCESS;
-
-    if (args != NULL
-        && nargs > 0)
-    {
-        uint32_t i = 0;
-
-        for (i = 1; i < nargs; i++)
+        if (searchFlag(pParamList, HELP_FLAG))
         {
-            printf("%s ", args[i]); 
+            printRmHelp(true);
         }
+        else
+        {
+            if (pParamList->numberOfParameters >= 1)
+            {
+                Folder    * parentFolder = NULL;
+                Folder    * pFolder = NULL;
+                File      * pFile = NULL;
+                char      * pName = NULL;
+                bool        forceDelete = false;
+                bool        recursive   = false;
+                uint32_t    i = 0;
+                Arguments * pArg = NULL;
+                
+                forceDelete = searchFlag(pParamList, RM_FORCE_FLAG);
+                recursive = searchFlag(pParamList, RM_RECURSIVE_FLAG);
 
-        printf("\n");
+                for (i = 0; i < pParamList->numberOfParameters; i++)
+                {
+                    pArg = getArgumentAtIndex(pParamList->parameters, i);
+
+                    if (pArg != NULL)
+                    {
+                        parentFolder = getFolderFromPath(pArg->arg); 
+                        getLastNameFromPath(pArg->arg, &pName);
+
+                        if (pName != NULL
+                            && pFolder != NULL)
+                        {
+                            //search the file
+                            ret = searchFileOrFolderIntoPool(parentFolder, pName, &pFile, NULL, false);
+
+                            if (ret == SUCCESS
+                                && pFile != NULL)
+                            {
+                                if (forceDelete
+                                    || (strcmp(getCurrentUser(), ROOT_USER) == 0)
+                                    || getYesOrNotFromConsole("Are you sure you want to delete this file [y,n]? "))
+                                {
+                                    ret = destroyFile(pFile); 
+                                }
+                                else
+                                {
+                                    ret = FILE_CAN_NOT_BE_DELETED;
+                                }
+                            }
+                            else //search the folder
+                            {
+                                ret = searchFileOrFolderIntoPool(parentFolder, pName, NULL, &pFolder, true);
+
+                                if (ret == SUCCESS
+                                    && pFolder != NULL)
+                                {
+                                    if (recursive
+                                        || getNumberOfChilds(pFolder) == 0)
+                                    {
+                                        if (forceDelete
+                                            || (strcmp(getCurrentUser(), ROOT_USER) == 0)
+                                            || getYesOrNotFromConsole("Are you sure you want to delete this folder [y,n]? "))
+                                        {
+                                            ret = destroyFolder(pFolder, recursive); 
+                                        }
+                                    }
+                                    else
+                                    {
+                                        ret = FOLDER_CAN_NOT_BE_DELETED;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (pName != NULL) 
+                        {
+                            MEMFREE(pName); 
+                        }
+                    }
+                }
+            }
+            else
+            {
+                ret = INVALID_PARAMETERS;
+            }
+
+            if (ret == INVALID_PARAMETERS)
+            {
+                printRmHelp(false);
+            }
+        }
     }
 
     return ret;
 }
 
-static int32_t runEdit(char **args, uint32_t nargs)
+static int32_t runMkdir(ParamList *pParamList)
 {
     int32_t ret = SUCCESS;
 
-    if (args != NULL
-        && nargs > 0)
+    if (pParamList != NULL)
+    {
+        if (searchFlag(pParamList, HELP_FLAG))
+        {
+            printMkdirHelp(true);
+        }
+        else
+        {
+            if (pParamList->numberOfParameters >= 1)
+            {
+                uint32_t    i = 0; 
+                Folder    * parentFolder = NULL;
+                char      * pName = NULL;
+                Arguments * pArg = NULL;
+
+                for (i = 0; i < pParamList->numberOfParameters; i++)
+                {
+                    pArg = getArgumentAtIndex(pParamList->parameters, i);
+
+                    if (pArg != NULL)
+                    {
+                        parentFolder = getFolderFromPath(pArg->arg); 
+                        getLastNameFromPath(pArg->arg, &pName);
+
+                        if (parentFolder != NULL)
+                        {
+                            createNewFolder(parentFolder, pName, NULL);
+                        }
+                        if (pName != NULL) 
+                        {
+                            MEMFREE(pName); 
+                        }
+                    }
+                }
+            }
+            else
+            {
+                ret = INVALID_PARAMETERS;
+            }
+
+            if (ret == INVALID_PARAMETERS)
+            {
+                printMkdirHelp(false);
+            }
+        }
+    }
+
+    return ret;
+}
+
+static int32_t runPwd(ParamList *pParamList)
+{
+    int32_t ret = SUCCESS;
+
+    if (pParamList != NULL)
+    {
+        if (searchFlag(pParamList, HELP_FLAG))
+        {
+            printPwdHelp(true);
+        }
+        else
+        {
+            Folder *currentFolder = NULL;
+            char * pFullPath = NULL;
+
+            currentFolder = getCurrentFolder();
+            pFullPath = getFullPath(currentFolder);
+
+            if (pFullPath != NULL)
+            {
+                printf("%s\n", pFullPath);
+                MEMFREE(pFullPath);
+            }
+            else
+            {
+                ret = FAIL;
+            }
+        }
+    }
+
+    return ret;
+}
+
+static int32_t runCp(ParamList *pParamList)
+{
+    int32_t ret = SUCCESS;
+
+    if (pParamList != NULL)
+    {
+        if (searchFlag(pParamList, HELP_FLAG))
+        {
+            printCpHelp(true);
+        }
+        else
+        {
+            if (pParamList->numberOfParameters == 2)
+            {
+                Arguments * srcArg = NULL;
+                Arguments * dstArg = NULL;
+                Folder    * srcFolder = NULL;
+                Folder    * dstFolder = NULL;
+                Folder    * parentDstFolder = NULL;
+                File      * srcFile = NULL;
+                File      * dstFile = NULL;
+                char      * srcName = NULL;
+                char      * dstName = NULL;
+                bool        forceCopy = false;
+
+                forceCopy = searchFlag(pParamList, CP_FORCE_FLAG);
+
+                srcArg = getArgumentAtIndex(pParamList->parameters, 0);
+                dstArg = getArgumentAtIndex(pParamList->parameters, 1);
+
+                if (srcArg != NULL
+                    && dstArg != NULL)
+                {
+                    srcFolder = getFolderFromPath(srcArg->arg); 
+                    getLastNameFromPath(srcArg->arg, &srcName);
+
+                    parentDstFolder = getFolderFromPath(dstArg->arg); 
+                    getLastNameFromPath(dstArg->arg, &dstName);
+
+                    //search the files
+                    ret = searchFileOrFolderIntoPool(srcFolder, srcName, &srcFile, NULL, false);
+
+                    if (ret == SUCCESS
+                        && srcFolder != NULL
+                        && srcFile != NULL
+                        && parentDstFolder != NULL)
+                    {
+                        //search the destination folder
+                        ret = searchFileOrFolderIntoPool(parentDstFolder, dstName, NULL, &dstFolder, true);
+
+                        if (ret == SUCCESS
+                            && dstFolder != NULL)
+                        {
+                            //search the file in the dstFolder
+                            ret = searchFileOrFolderIntoPool(dstFolder, dstName, &dstFile, NULL, false);
+                        }
+                        else //if the folder was not found
+                        {
+                            //search for a file
+                            ret = searchFileOrFolderIntoPool(parentDstFolder, dstName, &dstFile, NULL, false);
+                        }
+
+                        if (ret == FILE_NOT_FOUND)
+                        {
+                            ret = copyFiles(srcFile, dstFolder);
+                        }
+                        else if (dstFile != NULL) //if the file exist
+                        {
+                            if (srcFile == dstFile) //if the files are equals
+                            {
+                                ret = FILE_CAN_NOT_BE_OVERWRITTEN;
+                            }
+                            else
+                            {
+                                if (forceCopy)
+                                {
+                                    ret = destroyFile(dstFile);
+
+                                    if (ret == SUCCESS)
+                                    {
+                                        ret = copyFiles(srcFile, dstFolder); 
+                                    }
+                                }
+                                else
+                                {
+                                    ret = FILE_CAN_NOT_BE_OVERWRITTEN;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                ret = INVALID_PARAMETERS;
+            }
+
+            if (ret == INVALID_PARAMETERS)
+            {
+                printCpHelp(false);
+            }
+        }
+    }
+
+    return ret;
+}
+
+static int32_t runMv(ParamList *pParamList)
+{
+    int32_t ret = SUCCESS;
+
+    if (pParamList != NULL)
+    {
+        if (searchFlag(pParamList, HELP_FLAG))
+        {
+            printMvHelp(true);
+        }
+        else
+        {
+            if (pParamList->numberOfParameters == 2)
+            {
+                Arguments * srcArg = NULL;
+                Arguments * dstArg = NULL;
+                Folder    * srcFolder = NULL;
+                Folder    * dstFolder = NULL;
+                Folder    * parentDstFolder = NULL;
+                File      * srcFile = NULL;
+                File      * dstFile = NULL;
+                char      * srcName = NULL;
+                char      * dstName = NULL;
+                bool        forceMove = false;
+
+                forceMove = searchFlag(pParamList, MV_FORCE_FLAG);
+
+                srcArg = getArgumentAtIndex(pParamList->parameters, 0);
+                dstArg = getArgumentAtIndex(pParamList->parameters, 1);
+
+                if (srcArg != NULL
+                    && dstArg != NULL)
+                {
+                    srcFolder = getFolderFromPath(srcArg->arg); 
+                    getLastNameFromPath(srcArg->arg, &srcName);
+
+                    parentDstFolder = getFolderFromPath(dstArg->arg); 
+                    getLastNameFromPath(dstArg->arg, &dstName);
+
+                    //search the files
+                    ret = searchFileOrFolderIntoPool(srcFolder, srcName, &srcFile, NULL, false);
+
+                    if (ret == SUCCESS
+                        && srcFolder != NULL
+                        && srcFile != NULL
+                        && parentDstFolder != NULL)
+                    {
+                        //search the destination folder
+                        ret = searchFileOrFolderIntoPool(parentDstFolder, dstName, NULL, &dstFolder, true);
+
+                        if (ret == SUCCESS
+                            && dstFolder != NULL)
+                        {
+                            //search the file in the dstFolder
+                            ret = searchFileOrFolderIntoPool(dstFolder, dstName, &dstFile, NULL, false);
+                        }
+                        else //if the folder was not found
+                        {
+                            //search for a file
+                            ret = searchFileOrFolderIntoPool(parentDstFolder, dstName, &dstFile, NULL, false);
+                        }
+
+                        if (ret == FILE_NOT_FOUND)
+                        {
+                            ret = copyFiles(srcFile, dstFolder);
+
+                            if (ret == SUCCESS)
+                            {
+                                ret = destroyFile(srcFile);
+                            }
+                        }
+                        else if (dstFile != NULL) //if the file exist
+                        {
+                            if (srcFile == dstFile) //if the files are equals
+                            {
+                                ret = FILE_CAN_NOT_BE_OVERWRITTEN;
+                            }
+                            else
+                            {
+                                if (forceMove)
+                                {
+                                    ret = destroyFile(dstFile);
+
+                                    if (ret == SUCCESS)
+                                    {
+                                        ret = copyFiles(srcFile, dstFolder);
+
+                                        if (ret == SUCCESS)
+                                        {
+                                            ret = destroyFile(srcFile);
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    ret = FILE_CAN_NOT_BE_OVERWRITTEN;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                ret = INVALID_PARAMETERS;
+            }
+
+            if (ret == INVALID_PARAMETERS)
+            {
+                printMvHelp(false);
+            }
+        }
+    }
+
+    return ret;
+}
+
+static int32_t runTouch(ParamList *pParamList)
+{
+    int32_t ret = SUCCESS;
+
+    if (pParamList != NULL)
+    {
+        if (searchFlag(pParamList, HELP_FLAG))
+        {
+            printTouchHelp(true);
+        }
+        else
+        {
+            if (pParamList->numberOfParameters >= 1)
+            {
+                uint32_t i = 0; 
+                Folder    * parentFolder = NULL;
+                File      * pFile = NULL;
+                char      * pName = NULL;
+                Arguments * pArg = NULL;
+
+                for (i = 0; i < pParamList->numberOfParameters; i++)
+                {
+                    pArg = getArgumentAtIndex(pParamList->parameters, i);
+
+                    if (pArg != NULL)
+                    {
+                        parentFolder = getFolderFromPath(pArg->arg); 
+                        getLastNameFromPath(pArg->arg, &pName);
+
+                        ret = searchFileOrFolderIntoPool(parentFolder, pName, &pFile, NULL, false);
+
+                        if (ret == SUCCESS
+                            && pFile != NULL)
+                        {
+                            ret = updateFileModificationDate(pFile, NULL);
+                        }
+                        else if (parentFolder != NULL) 
+                        {
+                            pFile = createNewFile(parentFolder, pName, READ_ONLY | WRITE_ONLY | EXEC_ONLY);
+
+                            if (pFile != NULL)
+                            {
+                                ret = SUCCESS;
+                                pFile = NULL;
+                            }
+                        }
+
+                        if (pName != NULL) 
+                        {
+                            MEMFREE(pName); 
+                        }
+                    }
+                }
+            }
+            else
+            {
+                ret = INVALID_PARAMETERS;
+            }
+
+            if (ret == INVALID_PARAMETERS)
+            {
+                printTouchHelp(false);
+            }
+        }
+    }
+
+    return ret;
+}
+
+static int32_t runChmod(ParamList *pParamList)
+{
+    int32_t ret = SUCCESS;
+
+    if (pParamList != NULL)
+    {
+        if (searchFlag(pParamList, HELP_FLAG))
+        {
+            printChmodHelp(true);
+        }
+        else
+        {
+            if (pParamList->numberOfParameters == 2)
+            {
+                
+            }
+            else
+            {
+                ret = INVALID_PARAMETERS;
+            }
+
+            if (ret == INVALID_PARAMETERS)
+            {
+                printChmodHelp(false);
+            }
+        }
+    }
+
+    return ret;
+}
+
+static int32_t runSudo(ParamList *pParamList)
+{
+    int32_t ret = SUCCESS;
+
+    if (pParamList != NULL)
+    {
+        if (searchFlag(pParamList, HELP_FLAG))
+        {
+            printSudoSuHelp(true);
+        }
+        else
+        {
+            if (pParamList->numberOfParameters == 1)
+            {
+                
+            }
+            else
+            {
+                ret = INVALID_PARAMETERS;
+            }
+
+            if (ret == INVALID_PARAMETERS)
+            {
+                printSudoSuHelp(false);
+            }
+        }
+    }
+
+    return ret;
+}
+
+static int32_t runEcho(ParamList *pParamList)
+{
+    int32_t ret = SUCCESS;
+
+    if (pParamList != NULL)
+    {
+        if (searchFlag(pParamList, HELP_FLAG))
+        {
+            printEchoHelp(true);
+        }
+        else
+        {
+            Arguments * pArg = NULL;
+            uint32_t    i = 0;
+
+            for (i = 0; i < pParamList->numberOfParameters; i++)
+            {
+                pArg = getArgumentAtIndex(pParamList->parameters, i);
+
+                if (pArg != NULL)
+                {
+                    printf("%s ", pArg->arg); 
+                }
+            }
+            
+            printf("\n");
+        }
+    }
+
+    return ret;
+}
+
+static int32_t runEdit(ParamList *pParamList)
+{
+    int32_t ret = SUCCESS;
+
+    if (pParamList != NULL)
     {
 
     }
@@ -880,12 +1597,11 @@ static int32_t runEdit(char **args, uint32_t nargs)
     return ret;
 }
 
-static int32_t runClean(char **args, uint32_t nargs)
+static int32_t runClean(ParamList *pParamList)
 {
     int32_t ret = SUCCESS;
 
-    if (args != NULL
-        && nargs > 0)
+    if (pParamList != NULL)
     {
         cleanScreen();
     }
@@ -893,12 +1609,11 @@ static int32_t runClean(char **args, uint32_t nargs)
     return ret;
 }
 
-static int32_t runCat(char **args, uint32_t nargs)
+static int32_t runCat(ParamList *pParamList)
 {
     int32_t ret = SUCCESS;
 
-    if (args != NULL
-        && nargs > 0)
+    if (pParamList != NULL)
     {
         
     }
@@ -906,12 +1621,11 @@ static int32_t runCat(char **args, uint32_t nargs)
     return ret;
 }
 
-static int32_t runExit(char **args, uint32_t nargs)
+static int32_t runExit(ParamList *pParamList)
 {
     int32_t ret = SUCCESS;
 
-    if (args != NULL
-        && nargs > 0)
+    if (pParamList != NULL)
     {
         
     }

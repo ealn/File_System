@@ -37,6 +37,8 @@ Folder * getRootFolder(void);
 #define FOLDER_SEPARATOR    '/'
 #define PARENT_FOLDER       ".."
 #define CURRENT_FOLDER      "."
+#define ROOT_USER           "root"
+#define DEFAULT_USER        "user"
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

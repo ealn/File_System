@@ -66,17 +66,20 @@ struct _Folder
 #define WRITE_ONLY                 2
 #define EXEC_ONLY                  4
 
-#define SUCCESS                    0
-#define FAIL                      -1
-#define FILE_NOT_FOUND            -2
-#define FILE_ALREADY_EXIST        -3
-#define FILE_IS_ALREADY_OPENED    -4
-#define FILE_IS_ALREADY_CLOSED    -5
-#define THERE_ARE_NOT_FILES       -6
-#define FOLDER_NOT_FOUND          -7
-#define FOLDER_ALREADY_EXIST      -8
-#define COMMAND_NOT_FOUND         -9
-#define INVALID_PARAMETERS        -10
+#define SUCCESS                       0
+#define FAIL                         -1
+#define FILE_NOT_FOUND               -2
+#define FILE_ALREADY_EXIST           -3
+#define FILE_IS_ALREADY_OPENED       -4
+#define FILE_IS_ALREADY_CLOSED       -5
+#define THERE_ARE_NOT_FILES          -6
+#define FOLDER_NOT_FOUND             -7
+#define FOLDER_ALREADY_EXIST         -8
+#define COMMAND_NOT_FOUND            -9
+#define INVALID_PARAMETERS           -10
+#define FILE_CAN_NOT_BE_DELETED      -11
+#define FOLDER_CAN_NOT_BE_DELETED    -12
+#define FILE_CAN_NOT_BE_OVERWRITTEN  -13
 
 #define PERM_BUF_SIZE   4
 

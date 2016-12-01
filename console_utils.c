@@ -202,17 +202,17 @@ bool getYesOrNotFromConsole(const char *consoleStr)
 
         if (strlen(inputStr) == 1)   //1 character
         {
-            if ((inputChar == 's' || inputChar == 'S')
+            if ((inputChar == 'y' || inputChar == 'Y')
                 || (inputChar == 'n' || inputChar == 'N'))
             {
-                if (inputChar == 's' || inputChar == 'S') 
+                if (inputChar == 'y' || inputChar == 'Y') 
                 {
                     ret = true;
                 }
             }
             else
             {
-                printf("\nEntrada invalida\n");
+                printf("\nInvalid input\n");
                 //waiting for a key input
                 getchar();
                 loop = true;
@@ -220,7 +220,7 @@ bool getYesOrNotFromConsole(const char *consoleStr)
         }
         else
         {
-            printf("\nEntrada invalida\n");
+            printf("\nInvalid input\n");
             //waiting for a key input
             getchar();
             loop = true;

@@ -16,8 +16,6 @@
 #include "memutils.h"
 
 #define MAX_USER_NAME         10
-#define ROOT_USER             "root"
-#define DEFAULT_USER          "user"
 
 Folder *g_rootFolder = NULL;
 Folder *g_currentFolder = NULL;
