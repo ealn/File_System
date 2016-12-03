@@ -16,6 +16,7 @@
 #include "file.h"
 #include "file_system.h"
 #include "interface.h"
+#include "hard_drive.h"
 
 //Defines
 #define FOLDER_TAG    "<DIR>"
@@ -54,15 +55,6 @@ static int32_t freeFolderMemory(Folder *pFolder)
 
         if (ret == SUCCESS)
         {
-            if (pFolder->name != NULL) 
-            {
-                MEMFREE((void *)pFolder->name); 
-            }
-            if (pFolder->owner != NULL)
-            {
-                MEMFREE((void *)pFolder->owner);
-            }
-
             freeFolder(pFolder);
         }
     }
@@ -136,25 +128,29 @@ Folder * createNewFolder(Folder * parent, const char *pName, const char *pCreati
 
             if (newFolder != NULL)
             {
-                newFolder->name =  (char *)MEMALLOC(sizeof(char)* nameSize);
-                newFolder->owner = (char *)MEMALLOC(sizeof(char)* curUserSize);
-
                 strcpy(newFolder->name, pName);
                 strcpy(newFolder->owner, currentUser);
 
                 //TODO: send permissions as parameter
-                newFolder->permissions = READ_ONLY | WRITE_ONLY | EXEC_ONLY;
+                newFolder->permissions = DEFAULT_PERMISSIONS;
 
                 if (pCreationDate == NULL)
                 {
-                    getTimeStamp(newFolder->c_date); 
+                    getTimeStamp(newFolder->date); 
                 }
                 else
                 {
-                    memcpy(newFolder->c_date, pCreationDate, (TIME_BUF_SIZE - 1));
+                    memcpy(newFolder->date, pCreationDate, (TIME_BUF_SIZE - 1));
                 }
 
                 ret = createNewFpool(newFolder, NULL, true, parent);
+
+                newFolder->diskInfo.cluster = NULL_CLUSTER;
+                newFolder->diskInfo.dataSector = NULL_SECTOR;
+                newFolder->diskInfo.parentCluster = NULL_CLUSTER;
+                newFolder->diskInfo.childCluster = NULL_CLUSTER;
+                newFolder->diskInfo.nextCluster = NULL_CLUSTER;
+                newFolder->diskInfo.prevCluster = NULL_CLUSTER;
 
                 if (ret == SUCCESS
                     && sendInfoToHD())
@@ -227,7 +223,7 @@ void printFolderInfo(Folder * pFolder, bool showDetails)
                    permissions,
                    pFolder->owner,
                    0,
-                   pFolder->c_date,
+                   pFolder->date,
                    FOLDER_TAG,
                    pFolder->name); 
         }

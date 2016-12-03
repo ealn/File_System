@@ -17,25 +17,7 @@
 int32_t initFromHardDrive(void)
 {
     int32_t ret = SUCCESS;
-    Folder *root = NULL;
-    Folder *pFolder = NULL;
-    File   *pFile = NULL;
 
-    //TODO
-    /* root = createRootFolder();
-       while ()
-       {
-          TODO
-          if ()
-          {
-             pFolder = createNewFolder(...);
-          }
-          else
-          {
-             pFile = createNewFile(...);
-          }
-       }
-    */
     return ret;
 }
 

@@ -19,52 +19,14 @@
 extern "C" {
 #endif
 
-// Type definitions
-typedef struct _Folder Folder;
-typedef struct _File   File;
-typedef struct _Fpool  Fpool;
-
-struct _Fpool
-{
-    File    * file;
-    Folder  * folder;
-    Fpool   * parent;
-    Fpool   * next;
-    Fpool   * prev;
-    Fpool   * child;
-    Fpool   * last;
-    bool      isDir;
-    uint32_t  nElements;
-};
-
-struct _File
-{
-    char *   name;
-    char *   data;
-    char *   owner;
-    uint16_t permissions;
-    char     c_date[TIME_BUF_SIZE];        //creation date
-    char     m_date[TIME_BUF_SIZE];        //modification date
-    uint32_t size;
-    uint32_t w_point;      //write point
-    uint32_t r_point;      //read point
-    bool     is_opened;
-    Fpool   *fpool;
-};
-
-struct _Folder
-{
-    char *   name;
-    char *   owner;
-    char     c_date[TIME_BUF_SIZE];    //creation date
-    uint16_t permissions;
-    Fpool   *fpool;
-};
-
 // Defines
-#define READ_ONLY                  1
-#define WRITE_ONLY                 2
-#define EXEC_ONLY                  4
+#define READ_ONLY                  0x0001
+#define WRITE_ONLY                 0x0002
+#define EXEC_ONLY                  0x0004
+
+#define DEFAULT_PERMISSIONS        READ_ONLY       \
+                                   | WRITE_ONLY    \
+                                   | EXEC_ONLY
 
 #define SUCCESS                       0
 #define FAIL                         -1
@@ -81,7 +43,66 @@ struct _Folder
 #define FOLDER_CAN_NOT_BE_DELETED    -12
 #define FILE_CAN_NOT_BE_OVERWRITTEN  -13
 
+#define HD_ERROR_OPENNING_HD_FILE    -50
+#define HD_ERROR_MASTER_BOOT_RECORD  -51
+#define HD_ERROR_FORMAT              -52
+
 #define PERM_BUF_SIZE   4
+
+#define MAX_F_NAME_SIZE      64
+#define MAX_OWNER_SIZE       12
+#define MAX_DATE_SIZE        20
+
+
+// Type definitions
+typedef struct _Folder    Folder;
+typedef struct _File      File;
+typedef struct _Fpool     Fpool;
+typedef struct _DiskInfo  DiskInfo;
+
+struct _DiskInfo
+{
+    int32_t     cluster;        //Cluster where the file or folder is allocated
+    int32_t     dataSector;     //Sector where the data is allocated
+    uint32_t    dataSize;       //Data size
+    int32_t     parentCluster;  //Cluster of parent folder
+    int32_t     childCluster;   //Cluster of child
+    int32_t     nextCluster;    //Cluster of next element
+    int32_t     prevCluster;    //Cluster of previous element
+};
+
+struct _Fpool
+{
+    File    * file;
+    Folder  * folder;
+    Fpool   * parent;
+    Fpool   * next;
+    Fpool   * prev;
+    Fpool   * child;
+    Fpool   * last;
+    bool      isDir;
+    uint32_t  nElements;
+};
+
+struct _File
+{
+    char     name[MAX_F_NAME_SIZE];
+    char     owner[MAX_OWNER_SIZE];
+    uint16_t permissions;
+    char     date[MAX_DATE_SIZE];        //modification date
+    Fpool   *fpool;
+    DiskInfo diskInfo;
+};
+
+struct _Folder
+{
+    char     name[MAX_F_NAME_SIZE];
+    char     owner[MAX_OWNER_SIZE];
+    uint16_t permissions;
+    char     date[MAX_DATE_SIZE];    //creation date
+    Fpool   *fpool;
+    DiskInfo diskInfo;
+};
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

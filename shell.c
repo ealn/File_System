@@ -1420,7 +1420,7 @@ static int32_t runTouch(ParamList *pParamList)
                         }
                         else if (parentFolder != NULL) 
                         {
-                            pFile = createNewFile(parentFolder, pName, READ_ONLY | WRITE_ONLY | EXEC_ONLY);
+                            pFile = createNewFile(parentFolder, pName, DEFAULT_PERMISSIONS);
 
                             if (pFile != NULL)
                             {

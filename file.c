@@ -14,8 +14,7 @@
 #include "file_system.h"
 #include "memutils.h"
 #include "interface.h"
-
-#define CHUNK_SIZE    512
+#include "hard_drive.h"
 
 static File * allocFile(void)
 {
@@ -31,25 +30,6 @@ static void freeFile(File *pFile)
     if (pFile != NULL)
     {
         MEMFREE((void *)pFile);
-    }
-}
-
-static void reallocData(File * pFile, uint32_t newSize)
-{
-    if (pFile != NULL)
-    {
-        pFile->data = (char *)MEMREALLOC(pFile->data,
-                                         pFile->size,
-                                         newSize);
-    }
-}
-
-static void changeFileSize(File *pFile, uint32_t newSize)
-{
-    if (pFile != NULL)
-    {
-        reallocData(pFile, newSize);
-        pFile->size = newSize;
     }
 }
 
@@ -79,8 +59,8 @@ void printFileInfo(File *pFile, bool showDetails)
             printf("%s\t %s\t %d\t %s\t %s\t %s\n",
                    permissions,
                    pFile->owner,
-                   pFile->size,
-                   pFile->m_date,
+                   pFile->diskInfo.dataSize,
+                   pFile->date,
                    "",
                    pFile->name); 
         }
@@ -103,6 +83,7 @@ int32_t openFile(Folder *parent, char *pName)
 
         if (pFile != NULL)
         {
+            /* TODO
             if (!pFile->is_opened)
             {
                 pFile->is_opened = true; 
@@ -110,7 +91,7 @@ int32_t openFile(Folder *parent, char *pName)
             else
             {
                 ret = FILE_IS_ALREADY_OPENED;
-            }
+            }*/
         }
     }
     else
@@ -133,6 +114,7 @@ int32_t closeFile(Folder *parent, char *pName)
 
         if (pFile != NULL)
         {
+            /* TODO:
             if (pFile->is_opened)
             {
                 pFile->is_opened = false; 
@@ -140,7 +122,7 @@ int32_t closeFile(Folder *parent, char *pName)
             else
             {
                 ret = FILE_IS_ALREADY_CLOSED;
-            }
+            }*/
         }
     }
     else
@@ -167,6 +149,7 @@ int32_t writeFile(Folder *parent, char *pName, char *input, uint32_t numberOfByt
 
         if (pFile != NULL)
         {
+            /* TODO:
             index = pFile->w_point;
 
             while (index + numberOfBytes > (pFile->size - 1))  //keep the \0 terminator
@@ -178,9 +161,9 @@ int32_t writeFile(Folder *parent, char *pName, char *input, uint32_t numberOfByt
 
             pFile->w_point += numberOfBytes;
 
-            getTimeStamp(pFile->m_date);
+            getTimeStamp(pFile->date);
 
-            /*TODO:
+            TODO:
             if (ret == SUCCESS
                 && sendInfoToHD())
             {
@@ -211,7 +194,7 @@ int32_t readFile(Folder *parent, char *pName, char *output, uint32_t numberOfByt
 
         if (pFile != NULL)
         {
-            
+            /* TODO
             index = pFile->r_point;
 
             if (index + numberOfBytes > pFile->size)
@@ -226,7 +209,7 @@ int32_t readFile(Folder *parent, char *pName, char *output, uint32_t numberOfByt
             pFile->r_point += numberOfBytes;
 
             //TODO:
-            //output = readDataFromFile(pFile);
+            //output = readDataFromFile(pFile);*/
         }
     }
     else
@@ -250,7 +233,8 @@ int32_t tellFile(Folder *parent, char *pName, uint32_t *output)
 
         if (pFile != NULL)
         {
-            *output = pFile->r_point;
+            /*TODO
+            *output = pFile->r_point;*/
         }
     }
     else
@@ -273,6 +257,7 @@ int32_t seekFile(Folder *parent, char *pName, uint32_t newPoint)
 
         if (pFile != NULL)
         {
+            /*TODO
             if (newPoint < pFile->size)
             {
                 pFile->r_point = newPoint;
@@ -280,7 +265,7 @@ int32_t seekFile(Folder *parent, char *pName, uint32_t newPoint)
             else
             {
                 ret = FAIL;
-            }
+            }*/
         }
     }
     else
@@ -291,58 +276,6 @@ int32_t seekFile(Folder *parent, char *pName, uint32_t newPoint)
     return ret; 
 }
 
-static int32_t updateFileData(File *pFile, char *data, uint32_t size, uint32_t wPoint)
-{
-    int32_t ret = SUCCESS;
-
-    if (pFile != NULL
-        && pFile->data != NULL
-        && data != NULL
-        && (strcmp(pFile->data, data) != 0))
-    {
-        MEMFREE((void *)pFile->data);
-
-        pFile->data = (char *)MEMALLOC(sizeof(char)* size);
-        strcpy(pFile->data, data);
-
-        pFile->size = size;
-        pFile->w_point = wPoint;
-
-        if (sendInfoToHD())
-        {
-            ret = updateFileIntoHardDrive(pFile);
-        }
-    }
-
-    return ret;
-}
-
-static int32_t updateFileCreationDate(File *pFile, char *newCreationDate)
-{
-    int32_t ret = SUCCESS;
-
-    if (pFile != NULL)
-    {
-        if (newCreationDate != NULL
-            && (strlen(newCreationDate) == strlen(pFile->c_date)))
-        {
-            strcpy(pFile->c_date, newCreationDate);
-        }
-        else
-        {
-            //update from the system
-            getTimeStamp(pFile->c_date); 
-        }
-
-        if (sendInfoToHD())
-        {
-            ret = updateFileIntoHardDrive(pFile);
-        }
-    }
-
-    return ret;
-}
-
 int32_t updateFileModificationDate(File *pFile, char *newModDate)
 {
     int32_t ret = SUCCESS;
@@ -350,15 +283,16 @@ int32_t updateFileModificationDate(File *pFile, char *newModDate)
     if (pFile != NULL)
     {
         if (newModDate != NULL
-            && (strcmp(pFile->m_date, newModDate) != 0)
-            && (strlen(newModDate) == strlen(pFile->m_date)))
+            && (strcmp(pFile->date, newModDate) != 0)
+            && (strlen(newModDate) == strlen(pFile->date)))
         {
-            strcpy(pFile->m_date, newModDate);
+            memset(pFile->date, 0, sizeof(char)*MAX_DATE_SIZE);
+            strcpy(pFile->date, newModDate);
         }
         else
         {
             //update from the system
-            getTimeStamp(pFile->m_date); 
+            getTimeStamp(pFile->date); 
         }
 
         if (sendInfoToHD())
@@ -375,17 +309,10 @@ int32_t updateFileOwner(File *pFile, char *newOwner)
     int32_t ret = SUCCESS;
 
     if (pFile != NULL
-        && pFile->owner != NULL
         && newOwner != NULL
         && (strcmp(pFile->owner, newOwner) != 0))
     {
-        uint32_t len = 0;
-
-        len = strlen(newOwner) + 1;
-
-        MEMFREE((void *)pFile->owner);
-
-        pFile->owner = (char *)MEMALLOC(sizeof(char)* len);
+        memset(pFile->owner, 0, sizeof(char)*MAX_OWNER_SIZE);
         strcpy(pFile->owner, newOwner);
 
         if (sendInfoToHD())
@@ -428,9 +355,9 @@ int32_t copyFiles(File *srcFile, Folder *dstFolder)
 
         if (newFile != NULL)
         {
-            updateFileData(newFile, srcFile->data, srcFile->size, srcFile->w_point);
-            updateFileCreationDate(newFile, srcFile->c_date);
-            updateFileModificationDate(newFile, srcFile->m_date);
+            //TODO: get Data from hard disk
+            //updateFileData(newFile, srcFile->data, srcFile->size, srcFile->w_point);
+            updateFileModificationDate(newFile, srcFile->date);
             updateFileOwner(newFile, srcFile->owner);
         }
         else
@@ -465,20 +392,22 @@ File * createNewFile(Folder *parent, char *pName, uint16_t permissions)
 
             if (newFile != NULL)
             {
-                newFile->name =  (char *)MEMALLOC(sizeof(char)* nameSize);
-                newFile->data =  (char *)MEMALLOC(sizeof(char)* CHUNK_SIZE);
-                newFile->owner = (char *)MEMALLOC(sizeof(char)* curUserSize);
-                newFile->size = CHUNK_SIZE;
                 //TODO: send permissions as parameter
-                newFile->permissions = READ_ONLY | WRITE_ONLY | EXEC_ONLY;
+                newFile->permissions = DEFAULT_PERMISSIONS;
 
                 strcpy(newFile->name, pName);
                 strcpy(newFile->owner, currentUser);
 
-                getTimeStamp(newFile->c_date);
-                getTimeStamp(newFile->m_date);
+                getTimeStamp(newFile->date);
 
                 ret = createNewFpool(NULL, newFile, false, parent);
+
+                newFile->diskInfo.cluster = NULL_CLUSTER;
+                newFile->diskInfo.dataSector = NULL_SECTOR;
+                newFile->diskInfo.parentCluster = NULL_CLUSTER;
+                newFile->diskInfo.childCluster = NULL_CLUSTER;
+                newFile->diskInfo.nextCluster = NULL_CLUSTER;
+                newFile->diskInfo.prevCluster = NULL_CLUSTER;
 
                 if (ret == SUCCESS
                     && sendInfoToHD())
@@ -508,21 +437,6 @@ int32_t destroyFile(File * pFile)
 
         if (ret == SUCCESS)
         {
-            if (pFile->data != NULL) 
-            {
-                MEMFREE((void *)pFile->data);
-            }
-
-            if (pFile->name != NULL)
-            {
-                MEMFREE((void *)pFile->name); 
-            }
-
-            if (pFile->owner != NULL)
-            {
-                MEMFREE((void *)pFile->owner);
-            }
-
             freeFile(pFile);
         }
     }
