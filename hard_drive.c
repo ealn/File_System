@@ -31,6 +31,26 @@
 static FILE             * g_hardDisk = NULL;
 static MasterBootRecord * g_masterBootRecord = NULL;
 
+/***************************** Hard Drive **************************************
+ 
+|------------------------------------------------------------------------------|
+|                         Master Boot Record                                   |
+|------------------------------------------------------------------------------|
+| Cluster1 | Cluster2 | Cluster3| ...                                          |
+|-------------------------------                                               |
+|.                                                                             |
+|.                                                                             |
+|.                                                                             |
+|------------------------------------------------------------------------------|
+| DataSector1 | DataSector2 | DataSector3 | ...                                |
+|-----------------------------------------                                     |
+|.                                                                             |
+|.                                                                             |
+|.                                                                             |
+|------------------------------------------------------------------------------|
+ 
+**/ 
+ 
 void allocMasterBootRecord(void)
 {
     if (g_masterBootRecord == NULL)
@@ -45,6 +65,64 @@ void freeMasterBootRecord(void)
     {
         MEMFREE((void *)g_masterBootRecord);
     }
+}
+
+void initDataSector(DataSector *pDataSector)
+{
+    if (pDataSector != NULL)
+    {
+        memset(pDataSector, 0, DATA_SECTOR_SIZE);
+
+        //set default parameters
+        pDataSector->nextDataSector = NULL_SECTOR;
+        pDataSector->prevDataSector = NULL_SECTOR;
+    }
+}
+
+void initCluster(Cluster * pCluster)
+{
+    if (pCluster != NULL)
+    {
+        DiskInfo  *diskInfo;
+
+        memset(pCluster, 0, CLUSTER_SIZE);
+
+        //set default parameters
+        diskInfo = &(pCluster->fileFolder.file.diskInfo);
+
+        diskInfo->cluster = NULL_CLUSTER;
+        diskInfo->dataSector = NULL_SECTOR;
+        diskInfo->parentCluster = NULL_CLUSTER;
+        diskInfo->childCluster = NULL_CLUSTER;
+        diskInfo->nextCluster = NULL_CLUSTER;
+        diskInfo->prevCluster = NULL_CLUSTER;
+    }
+}
+
+int32_t getClusterAddressAtIndex(int32_t index)
+{
+    int32_t address = INVALID_ADDRESS;
+
+    if (g_masterBootRecord != NULL
+        && (index < g_masterBootRecord->numberOfClusters))
+    {
+        address = g_masterBootRecord->clusterAddress + CLUSTER_SIZE * index;
+    }
+
+    return address;
+}
+
+int32_t getDataSectorAddressAtIndex(int32_t index)
+{
+    int32_t address = INVALID_ADDRESS;
+
+    if (g_masterBootRecord != NULL
+        && (index < g_masterBootRecord->numberOfDataSectors))
+    {
+        address = g_masterBootRecord->dataSectorsAddress + DATA_SECTOR_SIZE * index;
+    }
+
+    return address;
 }
 
 void writeHD(char *buff, uint32_t pos, uint32_t size)
@@ -86,6 +164,7 @@ int32_t openHardDriveFile(void)
     int32_t ret = SUCCESS;
     FILE  * pFile = NULL;
 
+    //open file or create if it does not exist
     pFile = fopen(HARD_DISK_NAME, ATTR_FILE_READ_WRITE);
 
     if (pFile != NULL)
@@ -144,18 +223,47 @@ int32_t formatHardDisk(void)
 {
     int32_t ret = SUCCESS;
 
-    if (g_hardDisk != NULL)
+    if (g_hardDisk != NULL
+        && g_masterBootRecord != NULL)
     {
-        char buff[DEFAULT_HARD_DISK_SIZE];
+        char        buff[DEFAULT_HARD_DISK_SIZE];
+        Cluster     cluster;
+        DataSector  dataSector;
+        uint32_t    i = 0;
+        uint32_t    address = 0;
 
         //set to 0 the buffer
         memset(buff, 0, sizeof(char)*DEFAULT_HARD_DISK_SIZE);
+        initCluster(&cluster);
+        initDataSector(&dataSector);
 
         //write the buffer into hard drive
         writeHD(buff, 0, DEFAULT_HARD_DISK_SIZE);
 
         setDefaultMasterBootRecord();
         writeMasterBootRecordIntoHD();
+
+        //Write clusters
+        for (i = 0; i < g_masterBootRecord->numberOfClusters; i++)
+        {
+            address = getClusterAddressAtIndex(i);
+
+            if (address != INVALID_ADDRESS)
+            {
+                writeHD((char *)&cluster, address, CLUSTER_SIZE); 
+            }
+        }
+
+        //Write data sectors
+        for (i = 0; i < g_masterBootRecord->numberOfDataSectors; i++)
+        {
+            address = getDataSectorAddressAtIndex(i);
+
+            if (address != INVALID_ADDRESS)
+            {
+                writeHD((char *)&dataSector, address, DATA_SECTOR_SIZE); 
+            }
+        }
     }
     else
     {
@@ -176,23 +284,43 @@ int32_t createHardDrive(void)
         && g_hardDisk != NULL)
     {
         ret = formatHardDisk();
+
+        if (ret == SUCCESS)
+        {
+            Folder *root = NULL;
+
+            root = createRootFolder();
+            ret = insertFolderIntoHD(root);
+        }
     }
 
     return ret; 
 }
 
-int32_t getDataSectorAtIndex(int32_t index, DataSector * pOutputDataSector)
+int32_t getDataSectorAtIndex(int32_t index, DataSector * pOutputDataSector, int32_t *pOutputAddress)
 {
     int32_t dataSector = NULL_SECTOR;
 
     if (index != NULL_SECTOR
-        && pOutputDataSector != NULL)
+        && pOutputDataSector != NULL
+        && g_masterBootRecord != NULL
+        && (index < g_masterBootRecord->numberOfDataSectors))
     {
-        uint32_t address = 0;
+        int32_t address = INVALID_ADDRESS;
 
-        address = g_masterBootRecord->dataSectorsAddress + DATA_SECTOR_SIZE * index;
+        address = getDataSectorAddressAtIndex(index);
 
-        readHD((char *)pOutputDataSector, address, DATA_SECTOR_SIZE);
+        if (pOutputAddress != NULL)
+        {
+            //send output address
+            *pOutputAddress = address;
+        }
+
+        if (address != INVALID_ADDRESS)
+        {
+            readHD((char *)pOutputDataSector, address, DATA_SECTOR_SIZE); 
+            dataSector = index;
+        }
     }
 
     return dataSector; 
@@ -205,29 +333,50 @@ int32_t getFreeDataSector(void)
     if (g_hardDisk != NULL
         && g_masterBootRecord != NULL)
     {
+        int32_t   ret = 0;
         uint32_t  i = 0;
+        DataSector dataSector;
 
         for (i = 0; i < g_masterBootRecord->numberOfDataSectors; i++)
         {
-            //TODO: search into hard drive
+            ret = getDataSectorAtIndex(i, &dataSector, NULL);
+
+            if (ret != NULL_SECTOR
+                && dataSector.isUsed != 0)
+            {
+                freeDataSector = i;
+                break;
+            }
         }
     }
 
     return freeDataSector;
 }
 
-int32_t getClusterAtIndex(int32_t index, Cluster * pOutputCluster)
+int32_t getClusterAtIndex(int32_t index, Cluster * pOutputCluster, int32_t *pOutputAddress)
 {
     int32_t cluster = NULL_CLUSTER;
 
     if (index != NULL_CLUSTER
-        && pOutputCluster != NULL)
+        && pOutputCluster != NULL
+        && g_masterBootRecord != NULL
+        && (index < g_masterBootRecord->numberOfClusters))
     {
-        uint32_t address = 0;
+        int32_t address = INVALID_ADDRESS;
 
-        address = g_masterBootRecord->clusterAddress + CLUSTER_SIZE * index;
+        address = getClusterAddressAtIndex(index);
 
-        readHD((char *)pOutputCluster, address, CLUSTER_SIZE);
+        if (pOutputAddress != NULL)
+        {
+            //send output address
+            *pOutputAddress = address;
+        }
+
+        if (address != INVALID_ADDRESS)
+        {
+            readHD((char *)pOutputCluster, address, CLUSTER_SIZE); 
+            cluster = index;
+        }
     }
 
     return cluster; 
@@ -240,23 +389,105 @@ int32_t getFreeCluster(void)
     if (g_hardDisk != NULL
         && g_masterBootRecord != NULL)
     {
+        int32_t   ret = 0;
         uint32_t  i = 0;
+        Cluster   cluster;
 
         for (i = 0; i < g_masterBootRecord->numberOfClusters; i++)
         {
-            //TODO: search into hard drive
+            ret = getClusterAtIndex(i, &cluster, NULL);
+
+            if (ret != NULL_CLUSTER
+                && cluster.isUsed != 0)
+            {
+                freeCluster = i;
+                break;
+            }
         }
     }
 
     return freeCluster;
 }
 
-void freeCluster(int32_t cluster)
+void freeDataSector(int32_t index)
 {
-    //TODO
+    if (index != NULL_SECTOR)
+    {
+        DataSector dataSector;
+        DataSector emptyDataSector;
+        int32_t    ret = 0;
+        int32_t    address = INVALID_ADDRESS;
+
+        initDataSector(&emptyDataSector);
+        ret = getDataSectorAtIndex(index, &dataSector, &address);
+
+        if (ret != NULL_SECTOR
+            && address != INVALID_ADDRESS)
+        {
+            //clean cluster
+            writeHD((char *)&emptyDataSector, address, DATA_SECTOR_SIZE);
+        }
+
+    }
 }
 
-void freeDataSector(int32_t dataSector)
+void freeLinkDataSector(int32_t firstIndex)
+{
+    if (firstIndex != NULL_SECTOR)
+    {
+        //TODO
+    }
+}
+
+void unlinkCluster(Cluster * pCluster)
+{
+    if (pCluster != NULL)
+    {
+        //TODO: unlink cluster
+    }
+}
+
+void freeCluster(int32_t index)
+{
+    if (index != NULL_CLUSTER)
+    {
+        Cluster cluster;
+        Cluster emptyCluster;
+        int32_t address = INVALID_ADDRESS;
+        int32_t ret = 0;
+        DiskInfo  *diskInfo = NULL;
+
+        initCluster(&emptyCluster);
+        ret = getClusterAtIndex(index, &cluster, &address);
+
+        if (ret != NULL_CLUSTER
+            && address != INVALID_ADDRESS)
+        {
+            //get DiskInfo
+            diskInfo = &(cluster.fileFolder.file.diskInfo);
+
+            if (diskInfo->dataSector != NULL_SECTOR)
+            {
+                freeLinkDataSector(diskInfo->dataSector);
+            }
+
+            unlinkCluster(&cluster);
+
+            //clean cluster
+            writeHD((char *)&emptyCluster, address, CLUSTER_SIZE);
+        }
+    }
+}
+
+int32_t createCluster(int32_t parentCluster, int32_t cluster)
+{
+    int32_t ret = SUCCESS;
+    //TODO
+
+    return ret;
+}
+
+int32_t createDataSector(int32_t prevDataSector, int32_t dataSector)
 {
     //TODO
 }
@@ -300,25 +531,6 @@ int32_t readClusterRecursive(int32_t clusterNumber, bool createFiles)
     return ret; 
 }
 
-int32_t readCluster(int32_t clusterNumber, bool recursive, bool createFiles)
-{
-    int32_t ret = SUCCESS;
-
-    if (clusterNumber != NULL_CLUSTER)
-    {
-        if (recursive) 
-        {
-            readClusterRecursive(clusterNumber, createFiles);
-        }
-        else
-        {
-            //TODO
-        }
-    }
-
-    return ret;
-}
-
 int32_t readHardDriveInfo(void)
 {
     int32_t ret = SUCCESS;
@@ -329,7 +541,7 @@ int32_t readHardDriveInfo(void)
         getMasterBootRecordFromHD(); 
 
         //read cluster
-        ret = readCluster(0, true, true);
+        ret = readClusterRecursive(0, true);
     }
 
 

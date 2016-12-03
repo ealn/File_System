@@ -13,10 +13,22 @@
 #include "interface.h"
 #include "file_system.h"
 #include "folder.h"
+#include "hard_drive.h"
 
 int32_t initFromHardDrive(void)
 {
     int32_t ret = SUCCESS;
+
+    ret = initHardDrive();
+
+    return ret;
+}
+
+int32_t termHardDrive(void)
+{
+    int32_t ret = SUCCESS;
+
+    ret = closeHardDrive();
 
     return ret;
 }

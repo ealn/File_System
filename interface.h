@@ -17,6 +17,7 @@ extern "C" {
 #endif
 
 int32_t initFromHardDrive(void);
+int32_t termHardDrive(void);
 int32_t createFolderIntoHardDrive(Folder *pFolder);
 int32_t removeFolderIntoHardDrive(Folder *pFolder);
 int32_t createFileIntoHardDrive(File *pFile);

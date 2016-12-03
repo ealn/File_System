@@ -36,10 +36,10 @@ int32_t initFileSystem(void)
     }
 
     //TODO: remove this part when initFromHardDrive() is working
-    if (1)
+    /*if (1)
     {
         createRootFolder();
-    }
+    }*/
 
     return ret;
 }
@@ -95,7 +95,7 @@ void closeFileSystem(void)
 
         //free the memory of whole file system
         destroyFolder(g_rootFolder, true);
-        getchar();
+        termHardDrive();
     }
 }
 

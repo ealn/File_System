@@ -20,9 +20,16 @@ extern "C" {
 //defines
 #define NULL_SECTOR                 -1
 #define NULL_CLUSTER                -1
+#define INVALID_ADDRESS             -1
 #define MAX_DATA_PER_SECTOR         64
 
 //Typedefs
+typedef union _FileFolder
+{
+    File   file;
+    Folder folder;
+}FileFolder;
+
 typedef struct _MasterBootRecord
 {
     uint32_t   numberOfClusters;
@@ -37,11 +44,7 @@ typedef struct _Cluster
 {
     uint8_t    isUsed;
     uint8_t    isDir;
-    union      FileFolder
-    {
-        File   file;
-        Folder folder;
-    };
+    FileFolder fileFolder;
 }Cluster;
 
 typedef struct _DataSector

@@ -43,9 +43,11 @@ extern "C" {
 #define FOLDER_CAN_NOT_BE_DELETED    -12
 #define FILE_CAN_NOT_BE_OVERWRITTEN  -13
 
-#define HD_ERROR_OPENNING_HD_FILE    -50
-#define HD_ERROR_MASTER_BOOT_RECORD  -51
-#define HD_ERROR_FORMAT              -52
+#define HD_ERROR_OPENNING_HD_FILE            -50
+#define HD_ERROR_MASTER_BOOT_RECORD          -51
+#define HD_ERROR_FORMAT                      -52
+#define HD_ERROR_THERE_IS_NOT_CLUSTER_AVAIL  -53
+#define HD_ERROR_THERE_IS_NOT_DATA_SEC_AVAIL -54
 
 #define PERM_BUF_SIZE   4
 
