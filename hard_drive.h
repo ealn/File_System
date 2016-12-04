@@ -66,6 +66,8 @@ int32_t removeFileIntoHD(File *pFile);
 int32_t removeFolderIntoHD(Folder *pFolder);
 int32_t modifyFileIntoHD(File *pFile);
 int32_t modifyFolderIntoHD(Folder *pFolder);
+int32_t writeFileIntoHD(File *pFile, char * newData);
+char * readFileFromHD(File *pFile);
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

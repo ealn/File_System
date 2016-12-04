@@ -1116,7 +1116,7 @@ static int32_t runMkdir(ParamList *pParamList)
 
                         if (parentFolder != NULL)
                         {
-                            createNewFolder(parentFolder, pName, NULL);
+                            createNewFolder(parentFolder, pName, NULL, DEFAULT_PERMISSIONS, NULL, NULL);
                         }
                         if (pName != NULL) 
                         {
@@ -1420,7 +1420,12 @@ static int32_t runTouch(ParamList *pParamList)
                         }
                         else if (parentFolder != NULL) 
                         {
-                            pFile = createNewFile(parentFolder, pName, DEFAULT_PERMISSIONS);
+                            pFile = createNewFile(parentFolder, 
+                                                  pName,
+                                                  NULL, 
+                                                  DEFAULT_PERMISSIONS, 
+                                                  NULL,
+                                                  NULL);
 
                             if (pFile != NULL)
                             {

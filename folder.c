@@ -107,13 +107,15 @@ int32_t destroyFolderRecursive(Fpool *pFpool)
     return ret;
 }
 
-Folder * createNewFolder(Folder * parent, const char *pName, const char *pCreationDate)
+Folder * createNewFolder(Folder * parent, 
+                         const char *pName, 
+                         const char *owner, 
+                         uint16_t permissions, 
+                         const char *date,
+                         DiskInfo *pDiskInfo)
 {
     Folder * newFolder = NULL;
-    uint32_t nameSize = 0;
     int32_t  ret = SUCCESS;
-    char    *currentUser = NULL;
-    uint32_t curUserSize = 0;
 
     if (pName != NULL)
     {
@@ -122,35 +124,45 @@ Folder * createNewFolder(Folder * parent, const char *pName, const char *pCreati
         if (ret == FOLDER_NOT_FOUND)
         {
             newFolder = allocFolder(); 
-            nameSize = strlen(pName) + 1;  //add the \0 character
-
-            //TODO: send the user as parameter
-            currentUser = getCurrentUser();
-            curUserSize = strlen(currentUser) + 1;  //add the \0 character
 
             if (newFolder != NULL)
             {
+                newFolder->permissions = permissions;
+
                 strcpy(newFolder->name, pName);
-                strcpy(newFolder->owner, currentUser);
 
-                //TODO: send permissions as parameter
-                newFolder->permissions = DEFAULT_PERMISSIONS;
-
-                if (pCreationDate == NULL)
+                if (owner != NULL)
                 {
-                    getTimeStamp(newFolder->date); 
+                    strcpy(newFolder->owner, owner); 
                 }
                 else
                 {
-                    memcpy(newFolder->date, pCreationDate, (TIME_BUF_SIZE - 1));
+                    strcpy(newFolder->owner, getCurrentUser());
                 }
 
-                newFolder->diskInfo.cluster = NULL_CLUSTER;
-                newFolder->diskInfo.dataSector = NULL_SECTOR;
-                newFolder->diskInfo.parentCluster = NULL_CLUSTER;
-                newFolder->diskInfo.childCluster = NULL_CLUSTER;
-                newFolder->diskInfo.nextCluster = NULL_CLUSTER;
-                newFolder->diskInfo.prevCluster = NULL_CLUSTER;
+                if (date != NULL)
+                {
+                    strcpy(newFolder->date, date);
+                }
+                else
+                {
+                    getTimeStamp(newFolder->date); 
+                }
+
+                if (pDiskInfo != NULL)
+                {
+                    memcpy(&(newFolder->diskInfo), pDiskInfo, sizeof(DiskInfo));
+                }
+                else
+                {
+                    newFolder->diskInfo.cluster = NULL_CLUSTER; 
+                    newFolder->diskInfo.dataSector = NULL_SECTOR;
+                    newFolder->diskInfo.dataSize = 0;
+                    newFolder->diskInfo.parentCluster = NULL_CLUSTER;
+                    newFolder->diskInfo.childCluster = NULL_CLUSTER;
+                    newFolder->diskInfo.nextCluster = NULL_CLUSTER;
+                    newFolder->diskInfo.prevCluster = NULL_CLUSTER;
+                }
 
                 if (sendInfoToHD())
                 {
@@ -204,20 +216,36 @@ void printFolderInfo(Folder * pFolder, bool showDetails)
         if (showDetails)
         {
             char permissions[PERM_BUF_SIZE];
+            uint32_t index = 0;
 
             memset(permissions, 0, sizeof(char)*PERM_BUF_SIZE);
 
+            if (pFolder->permissions & (WRITE_ONLY << 4))
+            {
+                permissions[index++] = 'w';
+            }
+            if (pFolder->permissions & (READ_ONLY << 4))
+            {
+                permissions[index++] = 'r';
+            }
+            if (pFolder->permissions & (EXEC_ONLY << 4))
+            {
+                permissions[index++] = 'x';
+            }
+
+            permissions[index++] = '-';
+
             if (pFolder->permissions & WRITE_ONLY)
             {
-                permissions[0] = 'w';
+                permissions[index++] = 'w';
             }
             if (pFolder->permissions & READ_ONLY)
             {
-                permissions[1] = 'r';
+                permissions[index++] = 'r';
             }
             if (pFolder->permissions & EXEC_ONLY)
             {
-                permissions[2] = 'x';
+                permissions[index++] = 'x';
             }
 
             printf("%s\t %s\t %d\t %s\t %s\t %s\n",

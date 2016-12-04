@@ -24,7 +24,7 @@ Folder * getCurrentFolder(void);
 char * getCurrentFolderName(void);
 bool sendInfoToHD(void);
 bool setSetInfoToHD(bool value);
-Folder * createRootFolder(void);
+Folder * createRootFolder(char *date, DiskInfo *pDiskInfo);
 Folder * getFolderFromPath(const char *path);
 int32_t getLastNameFromPath(const char *path, char **output);
 void setCurrentDirectory(Folder *pFolder);

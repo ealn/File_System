@@ -16,7 +16,8 @@
 
 #define HARD_DISK_NAME              "virtualHD.dat"
 #define ATTR_FILE_READ              "r"
-#define ATTR_FILE_READ_WRITE        "w+"
+#define ATTR_FILE_READ_WRITE        "r+"
+#define ATTR_FILE_READ_WRITE_CREATE "w+"
 
 #define DEFAULT_CLUSTERS            512
 #define DEFAULT_DATA_SECTORS        512
@@ -299,13 +300,20 @@ bool existHardDrive(void)
     return ret; 
 }
 
-int32_t openHardDriveFile(void)
+int32_t openHardDriveFile(bool createHD)
 {
     int32_t ret = SUCCESS;
     FILE  * pFile = NULL;
 
     //open file or create if it does not exist
-    pFile = fopen(HARD_DISK_NAME, ATTR_FILE_READ_WRITE);
+    if (createHD)
+    {
+        pFile = fopen(HARD_DISK_NAME, ATTR_FILE_READ_WRITE_CREATE); 
+    }
+    else
+    {
+        pFile = fopen(HARD_DISK_NAME, ATTR_FILE_READ_WRITE); 
+    }
 
     if (pFile != NULL)
     {
@@ -418,7 +426,7 @@ int32_t createHardDrive(void)
     int32_t ret = SUCCESS;
 
     //create file if does not exist
-    ret = openHardDriveFile();
+    ret = openHardDriveFile(true);
 
     if (ret == SUCCESS
         && g_hardDisk != NULL)
@@ -427,7 +435,7 @@ int32_t createHardDrive(void)
 
         if (ret == SUCCESS)
         {
-            createRootFolder();
+            createRootFolder(NULL, NULL);
         }
     }
 
@@ -565,6 +573,7 @@ void freeDataSector(int32_t index)
             writeHD((char *)&emptyDataSector, address, DATA_SECTOR_SIZE);
         }
 
+        g_masterBootRecord->numberOfDataSectorsUsed--;
     }
 }
 
@@ -575,13 +584,23 @@ void freeLinkDataSector(int32_t firstIndex)
         DataSector dataSector;
         DataSector nextDataSector;
         int32_t    ret = NULL_SECTOR;
-        int32_t    lastSectorIndex = NULL_SECTOR;
+        int32_t    nextSectorIndex = NULL_SECTOR;
 
         ret = getDataSectorAtIndex(firstIndex, &dataSector, NULL);
 
         if (ret != NULL_SECTOR)
         {
-            //TODO
+            freeDataSector(firstIndex);
+
+            nextSectorIndex = dataSector.nextDataSector;
+
+            while (nextSectorIndex != NULL_SECTOR)
+            {
+                ret = getDataSectorAtIndex(nextSectorIndex, &nextDataSector, NULL);
+                freeDataSector(nextSectorIndex);
+                nextSectorIndex = nextDataSector.nextDataSector;
+
+            }
         }
     }
 }
@@ -699,44 +718,100 @@ void freeCluster(int32_t index)
     }
 }
 
-int32_t createCluster(int32_t parentCluster, int32_t cluster)
+int32_t createDataSector(char * newData)
 {
-    int32_t ret = SUCCESS;
+    int32_t newDataSector = NULL_SECTOR;
+
+    if (newData != NULL)
+    {
+        g_masterBootRecord->numberOfDataSectorsUsed++; 
+    }
+
+    return newDataSector;
+}
+
+int32_t writeDataSector(int32_t dataSector, char * newData)
+{
+    int32_t newDataSector = NULL_SECTOR;
+
+    if (dataSector != NULL_SECTOR
+        && newData != NULL)
+    {
+        freeLinkDataSector(dataSector);
+        newDataSector = createDataSector(newData);
+    }
+
+    return newDataSector;
+}
+
+char * readDataSector(int32_t dataSector)
+{
+    char * ret = NULL;
+
     //TODO
 
     return ret;
 }
 
-int32_t createDataSector(int32_t prevDataSector, int32_t dataSector)
-{
-    //TODO
-}
-
-int32_t writeDataSector(int32_t dataSector)
-{
-    int32_t ret = SUCCESS;
-
-    //TODO
-
-    return ret;
-}
-
-int32_t readDataSector(int32_t dataSector)
-{
-    int32_t ret = SUCCESS;
-
-    //TODO
-
-    return ret;
-}
-
-int32_t readClusterRecursive(int32_t clusterNumber, bool createFiles)
+int32_t readClusterRecursive(int32_t clusterNumber, Folder *parent)
 {
     int32_t ret = SUCCESS;
 
     if (clusterNumber != NULL_CLUSTER)
     {
-        //TODO
+        Cluster   cluster;
+        int32_t   nextClusterNumber = NULL_CLUSTER;
+        int32_t   childClusterNumber = NULL_CLUSTER;
+        Folder   *pFolder = NULL;
+        Folder   *pNewFolder = NULL;
+        File     *pFile = NULL;
+        File     *pNewFile = NULL;
+
+        getClusterAtIndex(clusterNumber, &cluster, NULL);
+
+        if (cluster.isUsed == 1)
+        {
+            childClusterNumber = getChildCluster(&cluster);
+            nextClusterNumber = getNextCluster(&cluster);
+
+            if (clusterNumber == 0) 
+            {
+                pFolder = &(cluster.fileFolder.folder);
+                pNewFolder = createRootFolder(pFolder->date, &(pFolder->diskInfo));
+            }
+            else
+            {
+                if (cluster.isDir == 1)
+                {
+                    pFolder = &(cluster.fileFolder.folder);
+                    pNewFolder = createNewFolder(parent,
+                                                 pFolder->name,
+                                                 pFolder->owner,
+                                                 pFolder->permissions,
+                                                 pFolder->date,
+                                                 &(pFolder->diskInfo));
+                }
+                else
+                {
+                    pFile = &(cluster.fileFolder.file);
+                    pNewFile = createNewFile(parent,
+                                             pFile->name,
+                                             pFile->owner,
+                                             pFile->permissions,
+                                             pFile->date,
+                                             &(pFile->diskInfo));
+                }
+            }
+
+            if (childClusterNumber != NULL_CLUSTER)
+            {
+                ret = readClusterRecursive(childClusterNumber, pNewFolder);
+            }
+            if (nextClusterNumber != NULL_CLUSTER)
+            {
+                ret = readClusterRecursive(nextClusterNumber, parent);
+            }
+        }
     }
 
     return ret; 
@@ -752,9 +827,8 @@ int32_t readHardDriveInfo(void)
         getMasterBootRecordFromHD(); 
 
         //read cluster
-        ret = readClusterRecursive(0, true);
+        ret = readClusterRecursive(0, NULL);
     }
-
 
     return ret;
 }
@@ -784,11 +858,11 @@ int32_t initHardDrive(void)
     if (g_masterBootRecord != NULL)
     {
         //TODO: Quitar el false del if
-        //if (existHardDrive())
-        if (false)
+        if (existHardDrive())
+        //if (false)
         {
             setSetInfoToHD(false);
-            ret = openHardDriveFile();
+            ret = openHardDriveFile(false);
 
             if (ret == SUCCESS)
             {
@@ -821,8 +895,15 @@ int32_t insertFileIntoHD(Folder *parentFolder, File *pFile, const char *data)
         DiskInfo  *diskInfo = NULL;
         DiskInfo  *parentDiskInfo = NULL;
         Cluster    cluster;
-        int32_t    clusterIndex = 0;
-        int32_t    address = 0;
+        Cluster    parentCluster;
+        Cluster    lastElementCluster;
+        int32_t    parentClusterIndex = NULL_CLUSTER;
+        int32_t    clusterIndex = NULL_CLUSTER;
+        int32_t    lastElementClusterIndex = NULL_CLUSTER;
+        int32_t    address = INVALID_ADDRESS;
+        int32_t    parentAddress = INVALID_ADDRESS;
+        int32_t    lastElementAddress = INVALID_ADDRESS;
+        bool       lastElementIsFolder = false;
 
         clusterIndex = getFreeCluster();
         diskInfo = &(pFile->diskInfo);
@@ -830,6 +911,9 @@ int32_t insertFileIntoHD(Folder *parentFolder, File *pFile, const char *data)
         if (parentFolder != NULL)
         {
             parentDiskInfo = &(parentFolder->diskInfo);
+            parentClusterIndex = parentDiskInfo->cluster;
+
+            getClusterAtIndex(parentClusterIndex, &parentCluster, &parentAddress);
         }
 
         if (clusterIndex != NULL_CLUSTER) 
@@ -861,17 +945,54 @@ int32_t insertFileIntoHD(Folder *parentFolder, File *pFile, const char *data)
                         {
                             diskInfo->prevCluster = lastFile->diskInfo.cluster;
                             lastFile->diskInfo.nextCluster = diskInfo->cluster;
+                            lastElementClusterIndex = lastFile->diskInfo.cluster;
                         }
                         else if (lastFolder != NULL)
                         {
                             diskInfo->prevCluster = lastFolder->diskInfo.cluster;
                             lastFolder->diskInfo.nextCluster = diskInfo->cluster;
+                            lastElementClusterIndex = lastFolder->diskInfo.cluster;
+                            lastElementIsFolder = true;
                         }
+
+                        //Update last element
+                        if (lastElementClusterIndex != NULL_CLUSTER)
+                        {
+                            getClusterAtIndex(lastElementClusterIndex,
+                                              &lastElementCluster, 
+                                              &lastElementAddress);
+
+                            if (lastElementIsFolder)
+                            {
+                                memcpy(&(lastElementCluster.fileFolder.folder.diskInfo), 
+                                       &(lastFolder->diskInfo),
+                                       sizeof(DiskInfo));
+                            }
+                            else
+                            {
+                                memcpy(&(lastElementCluster.fileFolder.file.diskInfo), 
+                                       &(lastFile->diskInfo),
+                                       sizeof(DiskInfo));
+                            }
+
+                            writeHD((char *)&lastElementCluster, lastElementAddress, CLUSTER_SIZE); 
+                        }
+                    }
+
+                    //Update Parent Information
+                    if (parentClusterIndex != NULL_CLUSTER)
+                    {
+                        memcpy(&(parentCluster.fileFolder.folder.diskInfo), 
+                               parentDiskInfo,
+                               sizeof(DiskInfo));
+
+                        writeHD((char *)&parentCluster, parentAddress, CLUSTER_SIZE); 
                     }
                 }
 
                 memcpy(&cluster.fileFolder.file, pFile, sizeof(File));
 
+                //Write info in new cluster
                 writeHD((char *)&cluster, address, CLUSTER_SIZE);
 
                 g_masterBootRecord->numberOfClustersUsed++;
@@ -893,8 +1014,15 @@ int32_t insertFolderIntoHD(Folder *parentFolder, Folder *pFolder)
         DiskInfo  *diskInfo = NULL;
         DiskInfo  *parentDiskInfo = NULL;
         Cluster    cluster;
-        int32_t    clusterIndex = 0;
-        int32_t    address = 0;
+        Cluster    parentCluster;
+        Cluster    lastElementCluster;
+        int32_t    parentClusterIndex = NULL_CLUSTER;
+        int32_t    clusterIndex = NULL_CLUSTER;
+        int32_t    lastElementClusterIndex = NULL_CLUSTER;
+        int32_t    address = INVALID_ADDRESS;
+        int32_t    parentAddress = INVALID_ADDRESS;
+        int32_t    lastElementAddress = INVALID_ADDRESS;
+        bool       lastElementIsFolder = false;
 
         clusterIndex = getFreeCluster();
         diskInfo = &(pFolder->diskInfo);
@@ -902,6 +1030,9 @@ int32_t insertFolderIntoHD(Folder *parentFolder, Folder *pFolder)
         if (parentFolder != NULL)
         {
             parentDiskInfo = &(parentFolder->diskInfo);
+            parentClusterIndex = parentDiskInfo->cluster;
+
+            getClusterAtIndex(parentClusterIndex, &parentCluster, &parentAddress);
         }
 
         if (clusterIndex != NULL_CLUSTER) 
@@ -930,17 +1061,54 @@ int32_t insertFolderIntoHD(Folder *parentFolder, Folder *pFolder)
                         {
                             diskInfo->prevCluster = lastFile->diskInfo.cluster;
                             lastFile->diskInfo.nextCluster = diskInfo->cluster;
+                            lastElementClusterIndex = lastFile->diskInfo.cluster;
                         }
                         else if (lastFolder != NULL)
                         {
                             diskInfo->prevCluster = lastFolder->diskInfo.cluster;
                             lastFolder->diskInfo.nextCluster = diskInfo->cluster;
+                            lastElementClusterIndex = lastFolder->diskInfo.cluster;
+                            lastElementIsFolder = true;
                         }
+
+                        //Update last element
+                        if (lastElementClusterIndex != NULL_CLUSTER)
+                        {
+                            getClusterAtIndex(lastElementClusterIndex, 
+                                              &lastElementCluster, 
+                                              &lastElementAddress);
+
+                            if (lastElementIsFolder)
+                            {
+                                memcpy(&(lastElementCluster.fileFolder.folder.diskInfo), 
+                                       &(lastFolder->diskInfo),
+                                       sizeof(DiskInfo));
+                            }
+                            else
+                            {
+                                memcpy(&(lastElementCluster.fileFolder.file.diskInfo), 
+                                       &(lastFile->diskInfo),
+                                       sizeof(DiskInfo));
+                            }
+
+                            writeHD((char *)&lastElementCluster, lastElementAddress, CLUSTER_SIZE); 
+                        }
+                    }
+
+                    //Update Parent Information
+                    if (parentClusterIndex != NULL_CLUSTER)
+                    {
+                        memcpy(&parentCluster.fileFolder.folder.diskInfo, 
+                               parentDiskInfo,
+                               sizeof(DiskInfo));
+
+                        writeHD((char *)&parentCluster, parentAddress, CLUSTER_SIZE); 
                     }
                 }
 
                 memcpy(&cluster.fileFolder.folder, pFolder, sizeof(Folder));
 
+                //Write info in new cluster
                 writeHD((char *)&cluster, address, CLUSTER_SIZE);
 
                 g_masterBootRecord->numberOfClustersUsed++;
@@ -1002,6 +1170,42 @@ int32_t modifyFolderIntoHD(Folder *pFolder)
     int32_t ret = SUCCESS;
 
     //TODO:
+
+    return ret;
+}
+
+int32_t writeFileIntoHD(File *pFile, char * newData)
+{
+    int32_t ret = SUCCESS;
+
+    if (pFile != NULL
+        && newData != NULL)
+    {
+        int32_t  dataSector;
+
+        dataSector = writeDataSector(pFile->diskInfo.dataSector, newData);
+
+        if (dataSector != NULL_SECTOR)
+        {
+            pFile->diskInfo.dataSize = strlen(newData);
+        }
+    }
+    else
+    {
+        ret = FAIL;
+    }
+
+    return ret;
+}
+
+char * readFileFromHD(File *pFile)
+{
+    char * ret = NULL;
+
+    if (pFile != NULL)
+    {
+        ret = readDataSector(pFile->diskInfo.dataSector);
+    }
 
     return ret;
 }

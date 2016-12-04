@@ -28,9 +28,15 @@ void termTrace(void);
 void getTimeStamp(char * pOutputTime);
 
 //Macros:
-#define MEM_ERROR(...)            traceDataError(MEM_COMP, __func__, __VA_ARGS__)
-#define MEM_WARNING(...)          traceDataWarning(MEM_COMP, __func__, __VA_ARGS__)
-#define MEM_DEBUG(...)            traceDataDebug(MEM_COMP, __func__, __VA_ARGS__)
+#ifdef DEBUG
+    #define MEM_ERROR(...)            traceDataError(MEM_COMP, __func__, __VA_ARGS__)
+    #define MEM_WARNING(...)          traceDataWarning(MEM_COMP, __func__, __VA_ARGS__)
+    #define MEM_DEBUG(...)            traceDataDebug(MEM_COMP, __func__, __VA_ARGS__)
+#else
+    #define MEM_ERROR(...)
+    #define MEM_WARNING(...)
+    #define MEM_DEBUG(...)
+#endif
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

@@ -73,7 +73,7 @@ char *  readDataFromFile(File *pFile)
 {
     char *ret = NULL;
 
-    //TODO
+    ret = readFileFromHD(pFile);
 
     return ret;
 }
@@ -82,7 +82,7 @@ int32_t writeDataIntoFile(File *pFile, char *newInfo)
 {
     int32_t ret = SUCCESS;
 
-    //TODO
+    ret = writeFileIntoHD(pFile, newInfo);
 
     return ret;
 }

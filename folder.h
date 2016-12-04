@@ -16,7 +16,12 @@
 extern "C" {
 #endif
 
-Folder * createNewFolder(Folder * parent, const char *pName, const char *pCreationDate);
+Folder * createNewFolder(Folder * parent, 
+                         const char *pName, 
+                         const char *owner, 
+                         uint16_t permissions, 
+                         const char *date,
+                         DiskInfo *pDiskInfo);
 int32_t destroyFolder(Folder * pFolder, bool recursive);
 void printFolderInfo(Folder * pFolder, bool showDetails);
 uint32_t getNumberOfChilds(Folder *pFolder);

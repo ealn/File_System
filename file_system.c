@@ -78,11 +78,11 @@ char * getCurrentFolderName(void)
     return folderName;
 }
 
-Folder * createRootFolder(void)
+Folder * createRootFolder(char *date, DiskInfo *pDiskInfo)
 {
     Folder *pRootFolder = NULL;
 
-    pRootFolder = createNewFolder(NULL, ROOT_FOLDER_NAME, NULL);
+    pRootFolder = createNewFolder(NULL, ROOT_FOLDER_NAME, ROOT_USER, DEFAULT_PERMISSIONS, date, pDiskInfo);
     g_rootFolder = pRootFolder;
     g_currentFolder = g_rootFolder;
 

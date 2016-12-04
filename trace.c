@@ -43,28 +43,34 @@ static void writeTrace(char * str);
 
 void initTrace(void)
 {
+#ifdef DEBUG
     if (traceFile == NULL)
     {
         traceFile = fopen(LOG_FILE, "a");
     }
+#endif
 }
 
 void termTrace(void)
 {
+#ifdef DEBUG
     if (traceFile != NULL)
     {
         fclose(traceFile);
         traceFile = NULL;
     }
+#endif
 }
 
 static void writeTrace(char * str)
 {
+#ifdef DEBUG
     if (traceFile != NULL)
     {
         fprintf(traceFile, str);
         fflush(traceFile);
     }
+#endif
 }
 
 void getTimeStamp(char * pOutputTime)

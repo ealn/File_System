@@ -17,7 +17,12 @@
 extern "C" {
 #endif
 
-File * createNewFile(Folder *parent, char *pName, uint16_t permissions);
+File * createNewFile(Folder *parent, 
+                     const char *pName, 
+                     const char *owner, 
+                     uint16_t permissions, 
+                     const char *date,
+                     DiskInfo *pDiskInfo);
 int32_t destroyFile(File * pFile);
 void printFileInfo(File *pFile, bool showDetails);
 int32_t updateFileModificationDate(File *pFile, char *newModDate);

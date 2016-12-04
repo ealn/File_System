@@ -40,20 +40,36 @@ void printFileInfo(File *pFile, bool showDetails)
         if (showDetails)
         {
             char permissions[PERM_BUF_SIZE];
+            uint32_t index = 0;
 
             memset(permissions, 0, sizeof(char)*PERM_BUF_SIZE);
 
+            if (pFile->permissions & (WRITE_ONLY << 4))
+            {
+                permissions[index++] = 'w';
+            }
+            if (pFile->permissions & (READ_ONLY << 4))
+            {
+                permissions[index++] = 'r';
+            }
+            if (pFile->permissions & (EXEC_ONLY << 4))
+            {
+                permissions[index++] = 'x';
+            }
+
+            permissions[index++] = '-';
+
             if (pFile->permissions & WRITE_ONLY)
             {
-                permissions[0] = 'w';
+                permissions[index++] = 'w';
             }
             if (pFile->permissions & READ_ONLY)
             {
-                permissions[1] = 'r';
+                permissions[index++] = 'r';
             }
             if (pFile->permissions & EXEC_ONLY)
             {
-                permissions[2] = 'x';
+                permissions[index++] = 'x';
             }
 
             printf("%s\t %s\t %d\t %s\t %s\t %s\n",
@@ -133,42 +149,23 @@ int32_t closeFile(Folder *parent, char *pName)
     return ret; 
 }
 
-int32_t writeFile(Folder *parent, char *pName, char *input, uint32_t numberOfBytes)
+int32_t writeFile(Folder *parent, char *pName, char *input)
 {
     int32_t ret = SUCCESS;
     File   *pFile = NULL;
 
     if (parent != NULL
         && pName != NULL
-        && input != NULL
-        && numberOfBytes >= 1)
+        && input != NULL)
     {
         uint32_t index = 0;
 
         ret = searchFileOrFolderIntoPool(parent, pName, &pFile, NULL, false);
 
-        if (pFile != NULL)
+        if (ret == SUCCESS
+            && pFile != NULL)
         {
-            /* TODO:
-            index = pFile->w_point;
-
-            while (index + numberOfBytes > (pFile->size - 1))  //keep the \0 terminator
-            {
-                changeFileSize(pFile, pFile->size + CHUNK_SIZE);
-            }
-            
-            memcpy(&pFile->data[index], input, numberOfBytes);
-
-            pFile->w_point += numberOfBytes;
-
-            getTimeStamp(pFile->date);
-
-            TODO:
-            if (ret == SUCCESS
-                && sendInfoToHD())
-            {
-                ret = writeDataIntoFile(pFile, pFile->data);
-            }*/
+            ret = writeDataIntoFile(pFile, input);
         }
     }
     else
@@ -179,45 +176,25 @@ int32_t writeFile(Folder *parent, char *pName, char *input, uint32_t numberOfByt
     return ret; 
 }
 
-int32_t readFile(Folder *parent, char *pName, char *output, uint32_t numberOfBytes)
+char * readFile(Folder *parent, char *pName)
 {
-    int32_t ret = SUCCESS;
+    char * output = NULL;
     File   *pFile = NULL;
+    int32_t ret = SUCCESS;
 
     if (parent != NULL
-        && pName != NULL
-        && output != NULL)
+        && pName != NULL)
     {
-        uint32_t index = 0;
-
         ret = searchFileOrFolderIntoPool(parent, pName, &pFile, NULL, false);
 
-        if (pFile != NULL)
+        if (ret == SUCCESS
+            && pFile != NULL)
         {
-            /* TODO
-            index = pFile->r_point;
-
-            if (index + numberOfBytes > pFile->size)
-            {
-                memcpy(output, &pFile->data[index], pFile->size);
-            }
-            else
-            {
-                memcpy(output, &pFile->data[index], numberOfBytes);
-            }
-
-            pFile->r_point += numberOfBytes;
-
-            //TODO:
-            //output = readDataFromFile(pFile);*/
+            output = readDataFromFile(pFile);
         }
     }
-    else
-    {
-        ret = FAIL;
-    }
 
-    return ret; 
+    return output; 
 }
 
 int32_t tellFile(Folder *parent, char *pName, uint32_t *output)
@@ -349,33 +326,36 @@ int32_t copyFiles(File *srcFile, Folder *dstFolder)
     if (srcFile != NULL
         && dstFolder != NULL)
     {
-        File *newFile;
+        File *newFile = NULL;
+        char * data = NULL;
 
-        newFile = createNewFile(dstFolder, srcFile->name, srcFile->permissions);
+        newFile = createNewFile(dstFolder, 
+                                srcFile->name,
+                                srcFile->owner,
+                                srcFile->permissions,
+                                srcFile->date,
+                                NULL);
 
-        if (newFile != NULL)
+        data = readDataFromFile(srcFile);
+
+        if (data != NULL)
         {
-            //TODO: get Data from hard disk
-            //updateFileData(newFile, srcFile->data, srcFile->size, srcFile->w_point);
-            updateFileModificationDate(newFile, srcFile->date);
-            updateFileOwner(newFile, srcFile->owner);
-        }
-        else
-        {
-            ret = FAIL;
+            ret = writeDataIntoFile(newFile, data);
         }
     }
 
     return ret; 
 }
 
-File * createNewFile(Folder *parent, char *pName, uint16_t permissions)
+File * createNewFile(Folder *parent, 
+                     const char *pName, 
+                     const char *owner, 
+                     uint16_t permissions, 
+                     const char *date,
+                     DiskInfo *pDiskInfo)
 {
-    File * newFile = NULL;
-    uint32_t nameSize = 0;
+    File   * newFile = NULL;
     int32_t  ret = SUCCESS;
-    char    *currentUser = NULL;
-    uint32_t curUserSize = 0;
 
     if (pName != NULL)
     {
@@ -384,32 +364,48 @@ File * createNewFile(Folder *parent, char *pName, uint16_t permissions)
         if (ret == FILE_NOT_FOUND)
         {
             newFile = allocFile(); 
-            nameSize = strlen(pName) + 1;  //add the \0 character
-
-            //TODO: send the user as parameter
-            currentUser = getCurrentUser();
-            curUserSize = strlen(currentUser) + 1;  //add the \0 character
 
             if (newFile != NULL)
             {
-                //TODO: send permissions as parameter
-                newFile->permissions = DEFAULT_PERMISSIONS;
+                newFile->permissions = permissions;
 
                 strcpy(newFile->name, pName);
-                strcpy(newFile->owner, currentUser);
 
-                getTimeStamp(newFile->date);
+                if (owner != NULL)
+                {
+                    strcpy(newFile->owner, owner); 
+                }
+                else
+                {
+                    strcpy(newFile->owner, getCurrentUser());
+                }
 
-                newFile->diskInfo.cluster = NULL_CLUSTER;
-                newFile->diskInfo.dataSector = NULL_SECTOR;
-                newFile->diskInfo.parentCluster = NULL_CLUSTER;
-                newFile->diskInfo.childCluster = NULL_CLUSTER;
-                newFile->diskInfo.nextCluster = NULL_CLUSTER;
-                newFile->diskInfo.prevCluster = NULL_CLUSTER;
+                if (date != NULL)
+                {
+                    strcpy(newFile->date, date);
+                }
+                else
+                {
+                    getTimeStamp(newFile->date); 
+                }
+
+                if (pDiskInfo != NULL)
+                {
+                    memcpy(&(newFile->diskInfo), pDiskInfo, sizeof(DiskInfo));
+                }
+                else
+                {
+                    newFile->diskInfo.cluster = NULL_CLUSTER; 
+                    newFile->diskInfo.dataSector = NULL_SECTOR;
+                    newFile->diskInfo.dataSize = 0;
+                    newFile->diskInfo.parentCluster = NULL_CLUSTER;
+                    newFile->diskInfo.childCluster = NULL_CLUSTER;
+                    newFile->diskInfo.nextCluster = NULL_CLUSTER;
+                    newFile->diskInfo.prevCluster = NULL_CLUSTER;
+                }
 
                 if (sendInfoToHD())
                 {
-                    //TODO: send the data to hard disk
                     ret = createFileIntoHardDrive(parent, newFile, NULL);
                 }
 

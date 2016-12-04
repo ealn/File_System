@@ -26,7 +26,8 @@ extern "C" {
 
 #define DEFAULT_PERMISSIONS        READ_ONLY       \
                                    | WRITE_ONLY    \
-                                   | EXEC_ONLY
+                                   | (READ_ONLY << 4) \
+                                   | (WRITE_ONLY << 4)
 
 #define SUCCESS                       0
 #define FAIL                         -1
@@ -49,7 +50,7 @@ extern "C" {
 #define HD_ERROR_THERE_IS_NOT_CLUSTER_AVAIL  -53
 #define HD_ERROR_THERE_IS_NOT_DATA_SEC_AVAIL -54
 
-#define PERM_BUF_SIZE   4
+#define PERM_BUF_SIZE   8
 
 #define MAX_F_NAME_SIZE      64
 #define MAX_OWNER_SIZE       12
