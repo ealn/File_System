@@ -7,5 +7,6 @@
 *.vpw
 *.vpwhist
 *.vtg
+*.dat
 log.txt
 Debug
