@@ -144,13 +144,13 @@ int32_t searchFileOrFolderIntoPool(Folder     *parentFolder,
         Fpool * grandParent = NULL;
 
         parentFpool = parentFolder->fpool;
-        grandParent = parentFpool->parent;
 
         if (parentFpool != NULL)
         {
             Fpool * pFPool = NULL;
 
             pFPool = parentFpool->child;
+            grandParent = parentFpool->parent;
 
             // if the folder contains elements
             if (pFPool != NULL)

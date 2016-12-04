@@ -400,8 +400,6 @@ File * createNewFile(Folder *parent, char *pName, uint16_t permissions)
 
                 getTimeStamp(newFile->date);
 
-                ret = createNewFpool(NULL, newFile, false, parent);
-
                 newFile->diskInfo.cluster = NULL_CLUSTER;
                 newFile->diskInfo.dataSector = NULL_SECTOR;
                 newFile->diskInfo.parentCluster = NULL_CLUSTER;
@@ -409,11 +407,13 @@ File * createNewFile(Folder *parent, char *pName, uint16_t permissions)
                 newFile->diskInfo.nextCluster = NULL_CLUSTER;
                 newFile->diskInfo.prevCluster = NULL_CLUSTER;
 
-                if (ret == SUCCESS
-                    && sendInfoToHD())
+                if (sendInfoToHD())
                 {
-                    ret = createFileIntoHardDrive(newFile);
+                    //TODO: send the data to hard disk
+                    ret = createFileIntoHardDrive(parent, newFile, NULL);
                 }
+
+                ret = createNewFpool(NULL, newFile, false, parent); 
             }
         }
     }
@@ -427,17 +427,19 @@ int32_t destroyFile(File * pFile)
 
     if (pFile != NULL)
     {
-        ret = removeFileOrFolderFromPool(pFile, NULL, false);
-
-        if (ret == SUCCESS
-            && sendInfoToHD())
+        if (sendInfoToHD())
         {
             ret = removeFileIntoHardDrive(pFile);
         }
 
         if (ret == SUCCESS)
         {
-            freeFile(pFile);
+            ret = removeFileOrFolderFromPool(pFile, NULL, false); 
+
+            if (ret == SUCCESS)
+            {
+                freeFile(pFile);
+            }
         }
     }
     else

@@ -26,14 +26,11 @@ int32_t initFileSystem(void)
 {
     int32_t ret = SUCCESS;
 
+    memset(currentUser, 0, sizeof(char) * MAX_USER_NAME); 
+    strcpy(currentUser, DEFAULT_USER);
+
     ret = initFromHardDrive();
 
-    if (ret == SUCCESS)
-    {
-        memset(currentUser, 0, sizeof(char) * MAX_USER_NAME); 
-        strcpy(currentUser, DEFAULT_USER);
-        sendInfoToHardDrive = true;
-    }
 
     //TODO: remove this part when initFromHardDrive() is working
     /*if (1)
@@ -57,6 +54,11 @@ Folder * getCurrentFolder(void)
 Folder * getRootFolder(void)
 {
     return g_rootFolder;
+}
+
+bool setSetInfoToHD(bool value)
+{
+    sendInfoToHardDrive = value;
 }
 
 bool sendInfoToHD(void)
@@ -91,7 +93,7 @@ void closeFileSystem(void)
 {
     if (g_rootFolder != NULL)
     {
-        sendInfoToHardDrive = false;
+        setSetInfoToHD(false);
 
         //free the memory of whole file system
         destroyFolder(g_rootFolder, true);
@@ -289,7 +291,8 @@ Folder * getParentFolderOfFile(File *pFile)
     Folder *parent = NULL;
     Fpool  *parentPool = NULL;
 
-    if (pFile != NULL)
+    if (pFile != NULL
+        && pFile->fpool != NULL)
     {
         parentPool = pFile->fpool->parent;
 
@@ -307,7 +310,8 @@ Folder * getParentFolderOfFolder(Folder *pFolder)
     Folder *parent = NULL;
     Fpool  *parentPool = NULL;
 
-    if (pFolder != NULL)
+    if (pFolder != NULL
+        && pFolder->fpool != NULL)
     {
         parentPool = pFolder->fpool->parent;
 
@@ -318,4 +322,34 @@ Folder * getParentFolderOfFolder(Folder *pFolder)
     }
 
     return parent;
+}
+
+int32_t getLastElementOfFolder(Folder *pFolder, File **pOutputFile, Folder **pOutputFolder)
+{
+    if (pFolder != NULL)
+    {
+        if (pOutputFile != NULL)
+        {
+            *pOutputFile = NULL;
+        }
+        if (pOutputFolder != NULL)
+        {
+            *pOutputFolder = NULL;
+        }
+
+        if (pFolder->fpool != NULL
+            && pFolder->fpool->last != NULL) 
+        {
+            if (pFolder->fpool->last->isDir
+                && pOutputFolder != NULL)
+            {
+                *pOutputFolder = pFolder->fpool->last->folder;
+            }
+            else if (!pFolder->fpool->last->isDir
+                     && pOutputFile != NULL)
+            {
+                *pOutputFile = pFolder->fpool->last->file;
+            }
+        }
+    }
 }

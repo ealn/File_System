@@ -23,6 +23,7 @@ char * getCurrentUser(void);
 Folder * getCurrentFolder(void);
 char * getCurrentFolderName(void);
 bool sendInfoToHD(void);
+bool setSetInfoToHD(bool value);
 Folder * createRootFolder(void);
 Folder * getFolderFromPath(const char *path);
 int32_t getLastNameFromPath(const char *path, char **output);
@@ -31,6 +32,7 @@ char * getFullPath(Folder *pFolder);
 Folder * getParentFolderOfFile(File *pFile);
 Folder * getParentFolderOfFolder(Folder *pFolder);
 Folder * getRootFolder(void);
+int32_t getLastElementOfFolder(Folder *pFolder, File **pOutputFile, Folder **pOutputFolder);
 
 //Defines
 #define ROOT_FOLDER_NAME    "/"

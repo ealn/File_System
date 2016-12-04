@@ -33,11 +33,11 @@ int32_t termHardDrive(void)
     return ret;
 }
 
-int32_t createFolderIntoHardDrive(Folder *pFolder)
+int32_t createFolderIntoHardDrive(Folder *parentFolder, Folder *pFolder)
 {
     int32_t ret = SUCCESS;
 
-    //TODO
+    ret = insertFolderIntoHD(parentFolder, pFolder);
 
     return ret;
 }
@@ -46,16 +46,16 @@ int32_t removeFolderIntoHardDrive(Folder *pFolder)
 {
     int32_t ret = SUCCESS;
 
-    //TODO
+    ret = removeFolderIntoHD(pFolder);
 
     return ret;
 }
 
-int32_t createFileIntoHardDrive(File *pFile)
+int32_t createFileIntoHardDrive(Folder *parentFolder, File *pFile, const char *data)
 {
     int32_t ret = SUCCESS;
 
-    //TODO
+    ret =  insertFileIntoHD(parentFolder, pFile, data);
 
     return ret;
 }
@@ -64,7 +64,7 @@ int32_t removeFileIntoHardDrive(File *pFile)
 {
     int32_t ret = SUCCESS;
 
-    //TODO
+    ret = removeFileIntoHD(pFile);
 
     return ret;
 }

@@ -45,17 +45,19 @@ static int32_t freeFolderMemory(Folder *pFolder)
 
     if (pFolder != NULL)
     {
-        ret = removeFileOrFolderFromPool(NULL, pFolder, true);
-
-        if (ret == SUCCESS
-            && sendInfoToHD())
+        if (sendInfoToHD())
         {
             ret = removeFolderIntoHardDrive(pFolder);
         }
 
         if (ret == SUCCESS)
         {
-            freeFolder(pFolder);
+            ret = removeFileOrFolderFromPool(NULL, pFolder, true); 
+
+            if (ret == SUCCESS)
+            {
+                freeFolder(pFolder);
+            }
         }
     }
     else
@@ -143,8 +145,6 @@ Folder * createNewFolder(Folder * parent, const char *pName, const char *pCreati
                     memcpy(newFolder->date, pCreationDate, (TIME_BUF_SIZE - 1));
                 }
 
-                ret = createNewFpool(newFolder, NULL, true, parent);
-
                 newFolder->diskInfo.cluster = NULL_CLUSTER;
                 newFolder->diskInfo.dataSector = NULL_SECTOR;
                 newFolder->diskInfo.parentCluster = NULL_CLUSTER;
@@ -152,11 +152,12 @@ Folder * createNewFolder(Folder * parent, const char *pName, const char *pCreati
                 newFolder->diskInfo.nextCluster = NULL_CLUSTER;
                 newFolder->diskInfo.prevCluster = NULL_CLUSTER;
 
-                if (ret == SUCCESS
-                    && sendInfoToHD())
+                if (sendInfoToHD())
                 {
-                    createFolderIntoHardDrive(newFolder);
+                    ret = createFolderIntoHardDrive(parent, newFolder);
                 }
+
+                ret = createNewFpool(newFolder, NULL, true, parent); 
             }
         }
     }

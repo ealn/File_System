@@ -99,6 +99,146 @@ void initCluster(Cluster * pCluster)
     }
 }
 
+int32_t getChildCluster(Cluster *pCluster)
+{
+    int32_t clusterIndex = NULL_CLUSTER;
+
+    if (pCluster != NULL)
+    {
+        if (pCluster->isDir)
+        {
+            clusterIndex = pCluster->fileFolder.folder.diskInfo.childCluster;
+        }
+        else
+        {
+            clusterIndex = pCluster->fileFolder.file.diskInfo.childCluster;
+        }
+        
+    }
+
+    return clusterIndex;
+}
+
+int32_t getParentCluster(Cluster *pCluster)
+{
+    int32_t clusterIndex = NULL_CLUSTER;
+
+    if (pCluster != NULL)
+    {
+        if (pCluster->isDir)
+        {
+            clusterIndex = pCluster->fileFolder.folder.diskInfo.parentCluster;
+        }
+        else
+        {
+            clusterIndex = pCluster->fileFolder.file.diskInfo.parentCluster;
+        }
+        
+    }
+
+    return clusterIndex;
+}
+
+int32_t getPrevCluster(Cluster *pCluster)
+{
+    int32_t clusterIndex = NULL_CLUSTER;
+
+    if (pCluster != NULL)
+    {
+        if (pCluster->isDir)
+        {
+            clusterIndex = pCluster->fileFolder.folder.diskInfo.prevCluster;
+        }
+        else
+        {
+            clusterIndex = pCluster->fileFolder.file.diskInfo.prevCluster;
+        }
+        
+    }
+
+    return clusterIndex;
+}
+
+int32_t getNextCluster(Cluster *pCluster)
+{
+    int32_t clusterIndex = NULL_CLUSTER;
+
+    if (pCluster != NULL)
+    {
+        if (pCluster->isDir)
+        {
+            clusterIndex = pCluster->fileFolder.folder.diskInfo.nextCluster;
+        }
+        else
+        {
+            clusterIndex = pCluster->fileFolder.file.diskInfo.nextCluster;
+        }
+        
+    }
+
+    return clusterIndex;
+}
+
+void setChildCluster(Cluster *pCluster, int32_t child)
+{
+    if (pCluster != NULL)
+    {
+        if (pCluster->isDir)
+        {
+            pCluster->fileFolder.folder.diskInfo.childCluster = child;
+        }
+        else
+        {
+            pCluster->fileFolder.file.diskInfo.childCluster = child;
+        }
+    }
+}
+
+void setParentCluster(Cluster *pCluster, int32_t parent)
+{
+    if (pCluster != NULL)
+    {
+        if (pCluster->isDir)
+        {
+            pCluster->fileFolder.folder.diskInfo.parentCluster = parent;
+        }
+        else
+        {
+            pCluster->fileFolder.file.diskInfo.parentCluster = parent;
+        }
+    }
+}
+
+void setNextCluster(Cluster *pCluster, int32_t next)
+{
+    if (pCluster != NULL)
+    {
+        if (pCluster->isDir)
+        {
+            pCluster->fileFolder.folder.diskInfo.nextCluster = next;
+        }
+        else
+        {
+            pCluster->fileFolder.file.diskInfo.nextCluster = next;
+        }
+    }
+}
+
+void setPrevCluster(Cluster *pCluster, int32_t prev)
+{
+    if (pCluster != NULL)
+    {
+        if (pCluster->isDir)
+        {
+            pCluster->fileFolder.folder.diskInfo.prevCluster = prev;
+        }
+        else
+        {
+            pCluster->fileFolder.file.diskInfo.prevCluster = prev;
+        }
+    }
+}
+
 int32_t getClusterAddressAtIndex(int32_t index)
 {
     int32_t address = INVALID_ADDRESS;
@@ -125,20 +265,20 @@ int32_t getDataSectorAddressAtIndex(int32_t index)
     return address;
 }
 
-void writeHD(char *buff, uint32_t pos, uint32_t size)
+void writeHD(char *buff, uint32_t address, uint32_t size)
 {
     if (g_hardDisk != NULL)
     {
-        fseek(g_hardDisk, pos, SEEK_SET);
+        fseek(g_hardDisk, address, SEEK_SET);
         fwrite((void *)buff, 1, size, g_hardDisk); 
     }
 }
 
-void readHD(char *outputBuff, uint32_t pos, uint32_t size)
+void readHD(char *outputBuff, uint32_t address, uint32_t size)
 {
     if (g_hardDisk != NULL)
     {
-        fseek(g_hardDisk, pos, SEEK_SET);
+        fseek(g_hardDisk, address, SEEK_SET);
         fread((void *)outputBuff, 1, size, g_hardDisk); 
     }
 }
@@ -287,10 +427,7 @@ int32_t createHardDrive(void)
 
         if (ret == SUCCESS)
         {
-            Folder *root = NULL;
-
-            root = createRootFolder();
-            ret = insertFolderIntoHD(root);
+            createRootFolder();
         }
     }
 
@@ -342,7 +479,7 @@ int32_t getFreeDataSector(void)
             ret = getDataSectorAtIndex(i, &dataSector, NULL);
 
             if (ret != NULL_SECTOR
-                && dataSector.isUsed != 0)
+                && dataSector.isUsed == 0)
             {
                 freeDataSector = i;
                 break;
@@ -398,7 +535,7 @@ int32_t getFreeCluster(void)
             ret = getClusterAtIndex(i, &cluster, NULL);
 
             if (ret != NULL_CLUSTER
-                && cluster.isUsed != 0)
+                && cluster.isUsed == 0)
             {
                 freeCluster = i;
                 break;
@@ -435,7 +572,17 @@ void freeLinkDataSector(int32_t firstIndex)
 {
     if (firstIndex != NULL_SECTOR)
     {
-        //TODO
+        DataSector dataSector;
+        DataSector nextDataSector;
+        int32_t    ret = NULL_SECTOR;
+        int32_t    lastSectorIndex = NULL_SECTOR;
+
+        ret = getDataSectorAtIndex(firstIndex, &dataSector, NULL);
+
+        if (ret != NULL_SECTOR)
+        {
+            //TODO
+        }
     }
 }
 
@@ -443,7 +590,79 @@ void unlinkCluster(Cluster * pCluster)
 {
     if (pCluster != NULL)
     {
-        //TODO: unlink cluster
+        Cluster   nextCluster;
+        Cluster   prevCluster;
+        Cluster   parentCluster;
+        int32_t   prevClusterIndex = 0;
+        int32_t   nextClusterIndex = 0;
+        int32_t   parentClusterIndex = 0;
+        int32_t   parentAddress = 0;
+        int32_t   nextAddress = 0;
+        int32_t   prevAddress = 0;
+        int32_t   clusterIndex = 0;
+        DiskInfo *pDiskInfo = NULL;
+
+        if (pCluster->isDir)
+        {
+            pDiskInfo = &(pCluster->fileFolder.folder.diskInfo);
+        }
+        else
+        {
+            pDiskInfo = &(pCluster->fileFolder.file.diskInfo);
+        }
+
+        clusterIndex = pDiskInfo->cluster;
+
+        parentClusterIndex = getClusterAtIndex(pDiskInfo->parentCluster, 
+                                               &parentCluster, 
+                                               &parentAddress);
+        prevClusterIndex = getClusterAtIndex(pDiskInfo->prevCluster, 
+                                             &prevCluster, 
+                                             &prevAddress); 
+        nextClusterIndex = getClusterAtIndex(pDiskInfo->nextCluster, 
+                                             &nextCluster, 
+                                             &nextAddress);
+
+        if (parentClusterIndex != NULL_CLUSTER)
+        {
+            if (getChildCluster(&parentCluster) == clusterIndex)
+            {
+                //if there is more elements to the rigth
+                if (nextClusterIndex != NULL_CLUSTER)
+                {
+                    setChildCluster(&parentCluster, nextClusterIndex);
+                    setPrevCluster(&nextCluster, NULL_CLUSTER);
+                }
+                else
+                {
+                    setChildCluster(&parentCluster, NULL_CLUSTER);
+                }
+            }
+            else
+            {
+                if (nextClusterIndex != NULL_CLUSTER)
+                {
+                    setPrevCluster(&nextCluster, prevClusterIndex);
+                }
+                if (prevClusterIndex != NULL_CLUSTER) 
+                {
+                    setNextCluster(&prevCluster, nextClusterIndex);
+                }
+            }
+        }
+
+        if (parentClusterIndex != NULL_CLUSTER)
+        {
+            writeHD((char *)&parentCluster, parentAddress, CLUSTER_SIZE); 
+        }
+        if (prevClusterIndex != NULL_CLUSTER)
+        {
+            writeHD((char *)&prevCluster, prevAddress, CLUSTER_SIZE); 
+        }
+        if (nextClusterIndex != NULL_CLUSTER)
+        {
+            writeHD((char *)&nextCluster, nextAddress, CLUSTER_SIZE); 
+        }
     }
 }
 
@@ -475,6 +694,7 @@ void freeCluster(int32_t index)
 
             //clean cluster
             writeHD((char *)&emptyCluster, address, CLUSTER_SIZE);
+            g_masterBootRecord->numberOfClustersUsed--;
         }
     }
 }
@@ -502,15 +722,6 @@ int32_t writeDataSector(int32_t dataSector)
 }
 
 int32_t readDataSector(int32_t dataSector)
-{
-    int32_t ret = SUCCESS;
-
-    //TODO
-
-    return ret;
-}
-
-int32_t writeCluster(int32_t cluster)
 {
     int32_t ret = SUCCESS;
 
@@ -572,17 +783,22 @@ int32_t initHardDrive(void)
 
     if (g_masterBootRecord != NULL)
     {
-        if (existHardDrive()) 
+        //TODO: Quitar el false del if
+        //if (existHardDrive())
+        if (false)
         {
+            setSetInfoToHD(false);
             ret = openHardDriveFile();
 
             if (ret == SUCCESS)
             {
-                readHardDriveInfo(); 
+                readHardDriveInfo();
+                setSetInfoToHD(true);
             }
         }
         else
         {
+            setSetInfoToHD(true);
             ret = createHardDrive();
         }
     }
@@ -594,20 +810,143 @@ int32_t initHardDrive(void)
     return ret;
 }
 
-int32_t insertFileIntoHD(File *pFile)
+int32_t insertFileIntoHD(Folder *parentFolder, File *pFile, const char *data)
 {
     int32_t ret = SUCCESS;
 
-    //TODO:
+    if (pFile != NULL)
+    {
+        Folder    *lastFolder = NULL;
+        File      *lastFile = NULL;
+        DiskInfo  *diskInfo = NULL;
+        DiskInfo  *parentDiskInfo = NULL;
+        Cluster    cluster;
+        int32_t    clusterIndex = 0;
+        int32_t    address = 0;
+
+        clusterIndex = getFreeCluster();
+        diskInfo = &(pFile->diskInfo);
+
+        if (parentFolder != NULL)
+        {
+            parentDiskInfo = &(parentFolder->diskInfo);
+        }
+
+        if (clusterIndex != NULL_CLUSTER) 
+        {
+            ret = getClusterAtIndex(clusterIndex, &cluster, &address);
+
+            if (address != INVALID_ADDRESS)
+            {
+                cluster.isUsed = 1;
+                diskInfo->cluster = clusterIndex;
+
+                if (data != NULL)
+                {
+                    //TODO: create Data Sectors
+                }
+                if (parentDiskInfo != NULL)
+                {
+                    diskInfo->parentCluster = parentDiskInfo->cluster;
+
+                    if (getNumberOfChilds(parentFolder) == 0)
+                    {
+                        parentDiskInfo->childCluster = diskInfo->cluster;
+                    }
+                    else
+                    {
+                        getLastElementOfFolder(parentFolder, &lastFile, &lastFolder); 
+
+                        if (lastFile != NULL)
+                        {
+                            diskInfo->prevCluster = lastFile->diskInfo.cluster;
+                            lastFile->diskInfo.nextCluster = diskInfo->cluster;
+                        }
+                        else if (lastFolder != NULL)
+                        {
+                            diskInfo->prevCluster = lastFolder->diskInfo.cluster;
+                            lastFolder->diskInfo.nextCluster = diskInfo->cluster;
+                        }
+                    }
+                }
+
+                memcpy(&cluster.fileFolder.file, pFile, sizeof(File));
+
+                writeHD((char *)&cluster, address, CLUSTER_SIZE);
+
+                g_masterBootRecord->numberOfClustersUsed++;
+            }
+        }
+    }
 
     return ret;
 }
 
-int32_t insertFolderIntoHD(Folder *pFolder)
+int32_t insertFolderIntoHD(Folder *parentFolder, Folder *pFolder)
 {
     int32_t ret = SUCCESS;
 
-    //TODO:
+    if (pFolder != NULL)
+    {
+        Folder    *lastFolder = NULL;
+        File      *lastFile = NULL;
+        DiskInfo  *diskInfo = NULL;
+        DiskInfo  *parentDiskInfo = NULL;
+        Cluster    cluster;
+        int32_t    clusterIndex = 0;
+        int32_t    address = 0;
+
+        clusterIndex = getFreeCluster();
+        diskInfo = &(pFolder->diskInfo);
+
+        if (parentFolder != NULL)
+        {
+            parentDiskInfo = &(parentFolder->diskInfo);
+        }
+
+        if (clusterIndex != NULL_CLUSTER) 
+        {
+            ret = getClusterAtIndex(clusterIndex, &cluster, &address);
+
+            if (address != INVALID_ADDRESS)
+            {
+                cluster.isUsed = 1;
+                cluster.isDir = 1;
+                diskInfo->cluster = clusterIndex;
+
+                if (parentDiskInfo != NULL)
+                {
+                    diskInfo->parentCluster = parentDiskInfo->cluster;
+
+                    if (getNumberOfChilds(parentFolder) == 0)
+                    {
+                        parentDiskInfo->childCluster = diskInfo->cluster;
+                    }
+                    else
+                    {
+                        getLastElementOfFolder(parentFolder, &lastFile, &lastFolder); 
+
+                        if (lastFile != NULL)
+                        {
+                            diskInfo->prevCluster = lastFile->diskInfo.cluster;
+                            lastFile->diskInfo.nextCluster = diskInfo->cluster;
+                        }
+                        else if (lastFolder != NULL)
+                        {
+                            diskInfo->prevCluster = lastFolder->diskInfo.cluster;
+                            lastFolder->diskInfo.nextCluster = diskInfo->cluster;
+                        }
+                    }
+                }
+
+                memcpy(&cluster.fileFolder.folder, pFolder, sizeof(Folder));
+
+                writeHD((char *)&cluster, address, CLUSTER_SIZE);
+
+                g_masterBootRecord->numberOfClustersUsed++;
+            }
+        }
+    }
 
     return ret;
 }
@@ -616,7 +955,19 @@ int32_t removeFileIntoHD(File *pFile)
 {
     int32_t ret = SUCCESS;
 
-    //TODO:
+    if (pFile != NULL)
+    {
+        DiskInfo  *diskInfo = NULL;
+
+        diskInfo = &(pFile->diskInfo);
+
+        if (diskInfo->dataSector != NULL_SECTOR)
+        {
+            freeLinkDataSector(diskInfo->dataSector);
+        }
+
+        freeCluster(diskInfo->cluster);
+    }
 
     return ret;
 }
@@ -625,7 +976,14 @@ int32_t removeFolderIntoHD(Folder *pFolder)
 {
     int32_t ret = SUCCESS;
 
-    //TODO:
+    if (pFolder != NULL)
+    {
+        DiskInfo  *diskInfo = NULL;
+
+        diskInfo = &(pFolder->diskInfo);
+
+        freeCluster(diskInfo->cluster);
+    }
 
     return ret;
 }
