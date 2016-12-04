@@ -16,7 +16,9 @@
 
 // Macros to select the OS to be used
 #define WINDOWS
-//#define UNIX
+#ifdef UNIX
+   #undef WINDOWS
+#endif
 
 //Constants
 #define STDIN_BUF_SIZE          4096
