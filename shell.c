@@ -1023,10 +1023,8 @@ static int32_t runRm(ParamList *pParamList)
                     {
                         parentFolder = getFolderFromPath(pArg->arg); 
                         getLastNameFromPath(pArg->arg, &pName);
-
-                        printf("\n%s\n", pName);
                         
-                        if(pName != NULL)
+                        if(pName != NULL && parentFolder != NULL)
                         {
                             //search the file
                             ret = searchFileOrFolderIntoPool(parentFolder, pName, &pFile, NULL, false);
