@@ -1160,7 +1160,29 @@ int32_t modifyFileIntoHD(File *pFile)
 {
     int32_t ret = SUCCESS;
 
-    //TODO:
+    if (pFile != NULL)
+    {
+        Cluster cluster;
+        int32_t clusterIndex = NULL_CLUSTER;
+        int32_t address = INVALID_ADDRESS;
+
+        clusterIndex = pFile->diskInfo.cluster;
+
+        getClusterAtIndex(clusterIndex, &cluster, &address);
+
+        if (clusterIndex != NULL_CLUSTER
+            && address != INVALID_ADDRESS)
+        {
+            memcpy(&cluster.fileFolder.file, pFile, sizeof(File));
+
+            //Write info into hard drive
+            writeHD((char *)&cluster, address, CLUSTER_SIZE);
+        }
+    }
+    else
+    {
+        ret = FAIL;
+    }
 
     return ret;
 }
@@ -1169,7 +1191,29 @@ int32_t modifyFolderIntoHD(Folder *pFolder)
 {
     int32_t ret = SUCCESS;
 
-    //TODO:
+    if (pFolder != NULL)
+    {
+        Cluster cluster;
+        int32_t clusterIndex = NULL_CLUSTER;
+        int32_t address = INVALID_ADDRESS;
+
+        clusterIndex = pFolder->diskInfo.cluster;
+
+        getClusterAtIndex(clusterIndex, &cluster, &address);
+
+        if (clusterIndex != NULL_CLUSTER
+            && address != INVALID_ADDRESS)
+        {
+            memcpy(&cluster.fileFolder.folder, pFolder, sizeof(Folder));
+
+            //Write info into hard drive
+            writeHD((char *)&cluster, address, CLUSTER_SIZE);
+        }
+    }
+    else
+    {
+        ret = FAIL;
+    }
 
     return ret;
 }

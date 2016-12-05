@@ -1415,7 +1415,7 @@ static int32_t runTouch(ParamList *pParamList)
                         if (ret == SUCCESS
                             && pFile != NULL)
                         {
-                            ret = updateFileModificationDate(pFile, NULL);
+                            ret = updateFileDate(pFile, NULL);
                         }
                         else if (parentFolder != NULL) 
                         {

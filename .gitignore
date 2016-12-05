@@ -8,5 +8,6 @@
 *.vpwhist
 *.vtg
 *.dat
+*.exe
 log.txt
 Debug

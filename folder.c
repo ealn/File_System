@@ -39,6 +39,72 @@ static void freeFolder(Folder *pFolder)
     }
 }
 
+int32_t updateFolderDate(Folder *pFolder, char *newModDate)
+{
+    int32_t ret = SUCCESS;
+
+    if (pFolder != NULL)
+    {
+        if (newModDate != NULL
+            && (strcmp(pFolder->date, newModDate) != 0)
+            && (strlen(newModDate) == strlen(pFolder->date)))
+        {
+            memset(pFolder->date, 0, sizeof(char)*MAX_DATE_SIZE);
+            strcpy(pFolder->date, newModDate);
+        }
+        else
+        {
+            //update from the system
+            getTimeStamp(pFolder->date); 
+        }
+
+        if (sendInfoToHD())
+        {
+            ret = updateFolderIntoHardDrive(pFolder);
+        }
+    }
+
+    return ret;
+}
+
+int32_t updateFolderOwner(Folder *pFolder, char *newOwner)
+{
+    int32_t ret = SUCCESS;
+
+    if (pFolder != NULL
+        && newOwner != NULL
+        && (strcmp(pFolder->owner, newOwner) != 0))
+    {
+        memset(pFolder->owner, 0, sizeof(char)*MAX_OWNER_SIZE);
+        strcpy(pFolder->owner, newOwner);
+
+        if (sendInfoToHD())
+        {
+            ret = updateFolderIntoHardDrive(pFolder);
+        }
+    }
+
+    return ret;
+}
+
+int32_t updateFolderPermissions(Folder *pFolder, uint16_t newPermissions)
+{
+    int32_t ret = SUCCESS;
+
+    if (pFolder != NULL
+        && pFolder->permissions != newPermissions)
+    {
+        pFolder->permissions = newPermissions;
+
+        if (sendInfoToHD())
+        {
+            ret = updateFolderIntoHardDrive(pFolder);
+        }
+    }
+
+    return ret; 
+}
+
 static int32_t freeFolderMemory(Folder *pFolder)
 {
     int32_t ret = SUCCESS;

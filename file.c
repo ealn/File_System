@@ -253,7 +253,7 @@ int32_t seekFile(Folder *parent, char *pName, uint32_t newPoint)
     return ret; 
 }
 
-int32_t updateFileModificationDate(File *pFile, char *newModDate)
+int32_t updateFileDate(File *pFile, char *newModDate)
 {
     int32_t ret = SUCCESS;
 

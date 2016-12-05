@@ -25,7 +25,7 @@ File * createNewFile(Folder *parent,
                      DiskInfo *pDiskInfo);
 int32_t destroyFile(File * pFile);
 void printFileInfo(File *pFile, bool showDetails);
-int32_t updateFileModificationDate(File *pFile, char *newModDate);
+int32_t updateFileDate(File *pFile, char *newModDate);
 int32_t copyFiles(File *srcFile, Folder *dstFolder);
 
 #if (defined(_cplusplus) || defined(__cplusplus))

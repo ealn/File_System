@@ -25,6 +25,9 @@ Folder * createNewFolder(Folder * parent,
 int32_t destroyFolder(Folder * pFolder, bool recursive);
 void printFolderInfo(Folder * pFolder, bool showDetails);
 uint32_t getNumberOfChilds(Folder *pFolder);
+int32_t updateFolderDate(Folder *pFolder, char *newModDate);
+int32_t updateFolderOwner(Folder *pFolder, char *newOwner);
+int32_t updateFolderPermissions(Folder *pFolder, uint16_t newPermissions);
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

@@ -94,6 +94,17 @@ int32_t updateFileIntoHardDrive(File *pFile)
 {
     int32_t ret = SUCCESS;
 
+    ret = modifyFileIntoHD(pFile);
+
+    return ret;
+}
+
+int32_t updateFolderIntoHardDrive(Folder *pFolder)
+{
+    int32_t ret = SUCCESS;
+
+    ret = modifyFolderIntoHD(pFolder);
+
     return ret;
 }
 
