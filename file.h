@@ -26,6 +26,8 @@ File * createNewFile(Folder *parent,
 int32_t destroyFile(File * pFile);
 void printFileInfo(File *pFile, bool showDetails);
 int32_t updateFileDate(File *pFile, char *newModDate);
+int32_t updateFileOwner(File *pFile, char *newOwner);
+int32_t updateFilePermissions(File *pFile, uint16_t newPermissions);
 int32_t copyFiles(File *srcFile, Folder *dstFolder);
 
 #if (defined(_cplusplus) || defined(__cplusplus))
