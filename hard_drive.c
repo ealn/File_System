@@ -19,6 +19,7 @@
 #define ATTR_FILE_READ_WRITE        "r+"
 #define ATTR_FILE_READ_WRITE_CREATE "w+"
 
+#define MASTER_BOOT_RECORD_ADDRESS  0
 #define DEFAULT_CLUSTERS            512
 #define DEFAULT_DATA_SECTORS        512
 #define CLUSTER_SIZE                sizeof(Cluster)
@@ -334,7 +335,7 @@ int32_t writeMasterBootRecordIntoHD(void)
     if (g_hardDisk != NULL
         && g_masterBootRecord != NULL)
     {
-        writeHD((char *)g_masterBootRecord, 0, MASTER_BOOT_RECORD_SIZE);
+        writeHD((char *)g_masterBootRecord, MASTER_BOOT_RECORD_ADDRESS, MASTER_BOOT_RECORD_SIZE);
     }
     else
     {
@@ -349,7 +350,7 @@ void getMasterBootRecordFromHD(void)
     if (g_hardDisk != NULL
         && g_masterBootRecord != NULL)
     {
-        readHD((char *)g_masterBootRecord, 0, MASTER_BOOT_RECORD_SIZE);
+        readHD((char *)g_masterBootRecord, MASTER_BOOT_RECORD_ADDRESS, MASTER_BOOT_RECORD_SIZE);
     }
 }
 
@@ -574,6 +575,7 @@ void freeDataSector(int32_t index)
         }
 
         g_masterBootRecord->numberOfDataSectorsUsed--;
+        writeMasterBootRecordIntoHD();
     }
 }
 
@@ -599,7 +601,6 @@ void freeLinkDataSector(int32_t firstIndex)
                 ret = getDataSectorAtIndex(nextSectorIndex, &nextDataSector, NULL);
                 freeDataSector(nextSectorIndex);
                 nextSectorIndex = nextDataSector.nextDataSector;
-
             }
         }
     }
@@ -714,6 +715,7 @@ void freeCluster(int32_t index)
             //clean cluster
             writeHD((char *)&emptyCluster, address, CLUSTER_SIZE);
             g_masterBootRecord->numberOfClustersUsed--;
+            writeMasterBootRecordIntoHD();
         }
     }
 }
@@ -724,7 +726,98 @@ int32_t createDataSector(char * newData)
 
     if (newData != NULL)
     {
-        g_masterBootRecord->numberOfDataSectorsUsed++; 
+        DataSector dataSector;
+        DataSector nextDataSector;
+        int32_t    indexDataSector = NULL_SECTOR;
+        int32_t    indexNextDataSector = NULL_SECTOR;
+        uint32_t   len = 0;
+        uint32_t   numberOfDataSectors = 0;
+        uint32_t   mod = 0;
+        int32_t    address = INVALID_ADDRESS;
+        int32_t    nextAddress = INVALID_ADDRESS;
+        uint32_t   pointerStr = 0;
+        uint32_t   i = 0;
+
+        len = strlen(newData);
+        mod = (len % (MAX_DATA_PER_SECTOR - 1)) ? 1: 0;  //keep the null character at the end
+        numberOfDataSectors = (uint32_t)(len / (MAX_DATA_PER_SECTOR - 1)) + mod;
+
+        //get the first data sector
+        indexDataSector = getFreeDataSector();
+
+        if (indexDataSector != NULL_SECTOR)
+        {
+            getDataSectorAtIndex(indexDataSector, &dataSector, &address);
+            dataSector.isUsed = 1;
+
+            //copy information
+            if (len > (MAX_DATA_PER_SECTOR - 1))
+            {
+                strncpy(dataSector.data, newData, (MAX_DATA_PER_SECTOR - 1));
+                dataSector.dataLenght = (MAX_DATA_PER_SECTOR - 1);
+                pointerStr += (MAX_DATA_PER_SECTOR - 1);
+                len -= (MAX_DATA_PER_SECTOR - 1);
+            }
+            else
+            {
+                strncpy(dataSector.data, newData, len);
+                dataSector.dataLenght = len;
+                pointerStr += len;
+                len = 0;
+            }
+
+            newDataSector = indexDataSector;
+            writeHD((char *)&dataSector, address, DATA_SECTOR_SIZE);
+
+            g_masterBootRecord->numberOfDataSectorsUsed++; 
+            writeMasterBootRecordIntoHD();
+
+            //get the next data sectors
+            for (i = 1; i < numberOfDataSectors; i++)
+            {
+                indexNextDataSector = getFreeDataSector();
+
+                if (indexNextDataSector != NULL_SECTOR)
+                {
+                    getDataSectorAtIndex(indexNextDataSector, &nextDataSector, &nextAddress);
+                    nextDataSector.isUsed = 1;
+
+                    //copy information
+                    if (len > (MAX_DATA_PER_SECTOR - 1))
+                    {
+                        strncpy(nextDataSector.data, newData + pointerStr, (MAX_DATA_PER_SECTOR - 1));
+                        nextDataSector.dataLenght = (MAX_DATA_PER_SECTOR - 1);
+                        pointerStr += (MAX_DATA_PER_SECTOR - 1);
+                        len -= (MAX_DATA_PER_SECTOR - 1);
+                    }
+                    else
+                    {
+                        strncpy(nextDataSector.data, newData + pointerStr, len);
+                        nextDataSector.dataLenght = len;
+                        pointerStr += len;
+                        len = 0;
+                    }
+
+                    //link the data sectors
+                    nextDataSector.prevDataSector = indexDataSector;
+                    dataSector.nextDataSector = indexNextDataSector;
+                    writeHD((char *)&nextDataSector, nextAddress, DATA_SECTOR_SIZE);
+                    writeHD((char *)&dataSector, address, DATA_SECTOR_SIZE);
+
+                    //exchange data sectors
+                    memcpy(&dataSector, &nextDataSector, DATA_SECTOR_SIZE);
+                    address = nextAddress;
+                    indexDataSector = indexNextDataSector;
+
+                    g_masterBootRecord->numberOfDataSectorsUsed++; 
+                    writeMasterBootRecordIntoHD();
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
     }
 
     return newDataSector;
@@ -744,13 +837,44 @@ int32_t writeDataSector(int32_t dataSector, char * newData)
     return newDataSector;
 }
 
-char * readDataSector(int32_t dataSector)
+char * readDataSector(int32_t dataSectorIndex, uint32_t len)
 {
-    char * ret = NULL;
+    char * str = NULL;
 
-    //TODO
+    if (dataSectorIndex != NULL_SECTOR)
+    {
+        DataSector dataSector;
+        DataSector nextDataSector;
+        int32_t    ret = NULL_SECTOR;
+        int32_t    nextSectorIndex = NULL_SECTOR;
+        uint32_t   pointerStr = 0;
 
-    return ret;
+        ret = getDataSectorAtIndex(dataSectorIndex, &dataSector, NULL);
+
+        if (ret != NULL_SECTOR)
+        {
+            str = (char *)MEMALLOC(sizeof(char)*(len + 1)); //add the null character
+
+            if (str != NULL
+                && len > 0)
+            {
+                strcpy(str, dataSector.data); 
+                pointerStr = strlen(dataSector.data);
+
+                nextSectorIndex = dataSector.nextDataSector;
+
+                while (nextSectorIndex != NULL_SECTOR)
+                {
+                    ret = getDataSectorAtIndex(nextSectorIndex, &nextDataSector, NULL);
+                    strcpy(str + pointerStr, nextDataSector.data);
+                    pointerStr += strlen(nextDataSector.data);
+                    nextSectorIndex = nextDataSector.nextDataSector;
+                }
+            }
+        }
+    }
+
+    return str;
 }
 
 int32_t readClusterRecursive(int32_t clusterNumber, Folder *parent)
@@ -884,7 +1008,7 @@ int32_t initHardDrive(void)
     return ret;
 }
 
-int32_t insertFileIntoHD(Folder *parentFolder, File *pFile, const char *data)
+int32_t insertFileIntoHD(Folder *parentFolder, File *pFile)
 {
     int32_t ret = SUCCESS;
 
@@ -897,12 +1021,15 @@ int32_t insertFileIntoHD(Folder *parentFolder, File *pFile, const char *data)
         Cluster    cluster;
         Cluster    parentCluster;
         Cluster    lastElementCluster;
+        DataSector dataSector;
         int32_t    parentClusterIndex = NULL_CLUSTER;
         int32_t    clusterIndex = NULL_CLUSTER;
         int32_t    lastElementClusterIndex = NULL_CLUSTER;
         int32_t    address = INVALID_ADDRESS;
         int32_t    parentAddress = INVALID_ADDRESS;
+        int32_t    dataSectorAddress = INVALID_ADDRESS;
         int32_t    lastElementAddress = INVALID_ADDRESS;
+        int32_t    indexDataSector = NULL_SECTOR;
         bool       lastElementIsFolder = false;
 
         clusterIndex = getFreeCluster();
@@ -925,10 +1052,19 @@ int32_t insertFileIntoHD(Folder *parentFolder, File *pFile, const char *data)
                 cluster.isUsed = 1;
                 diskInfo->cluster = clusterIndex;
 
-                if (data != NULL)
+                //create Data Sector
+                indexDataSector = getFreeDataSector();
+
+                if (indexDataSector != NULL_SECTOR)
                 {
-                    //TODO: create Data Sectors
+                    getDataSectorAtIndex(indexDataSector, &dataSector, &dataSectorAddress);
+                    dataSector.isUsed = 1;
+                    writeHD((char *)&dataSector, dataSectorAddress, DATA_SECTOR_SIZE);
+
+                    diskInfo->dataSector = indexDataSector;
                 }
+
+                //link the parent folder
                 if (parentDiskInfo != NULL)
                 {
                     diskInfo->parentCluster = parentDiskInfo->cluster;
@@ -996,6 +1132,7 @@ int32_t insertFileIntoHD(Folder *parentFolder, File *pFile, const char *data)
                 writeHD((char *)&cluster, address, CLUSTER_SIZE);
 
                 g_masterBootRecord->numberOfClustersUsed++;
+                writeMasterBootRecordIntoHD();
             }
         }
     }
@@ -1112,6 +1249,7 @@ int32_t insertFolderIntoHD(Folder *parentFolder, Folder *pFolder)
                 writeHD((char *)&cluster, address, CLUSTER_SIZE);
 
                 g_masterBootRecord->numberOfClustersUsed++;
+                writeMasterBootRecordIntoHD();
             }
         }
     }
@@ -1231,7 +1369,9 @@ int32_t writeFileIntoHD(File *pFile, char * newData)
 
         if (dataSector != NULL_SECTOR)
         {
+            pFile->diskInfo.dataSector = dataSector;
             pFile->diskInfo.dataSize = strlen(newData);
+            modifyFileIntoHD(pFile);
         }
     }
     else
@@ -1248,7 +1388,8 @@ char * readFileFromHD(File *pFile)
 
     if (pFile != NULL)
     {
-        ret = readDataSector(pFile->diskInfo.dataSector);
+        ret = readDataSector(pFile->diskInfo.dataSector,
+                             pFile->diskInfo.dataSize);
     }
 
     return ret;

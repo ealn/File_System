@@ -60,7 +60,7 @@ typedef struct _DataSector
 
 int32_t closeHardDrive(void);
 int32_t initHardDrive(void);
-int32_t insertFileIntoHD(Folder *parentFolder, File *pFile, const char *data);
+int32_t insertFileIntoHD(Folder *parentFolder, File *pFile);
 int32_t insertFolderIntoHD(Folder *parentFolder, Folder *pFolder);
 int32_t removeFileIntoHD(File *pFile);
 int32_t removeFolderIntoHD(Folder *pFolder);

@@ -20,7 +20,7 @@ int32_t initFromHardDrive(void);
 int32_t termHardDrive(void);
 int32_t createFolderIntoHardDrive(Folder *parentFolder, Folder *pFolder);
 int32_t removeFolderIntoHardDrive(Folder *pFolder);
-int32_t createFileIntoHardDrive(Folder *parentFolder, File *pFile, const char *data);
+int32_t createFileIntoHardDrive(Folder *parentFolder, File *pFile);
 int32_t removeFileIntoHardDrive(File *pFile);
 char *  readDataFromFile(File *pFile);
 int32_t writeDataIntoFile(File *pFile, char *newInfo);

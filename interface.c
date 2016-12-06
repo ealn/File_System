@@ -51,11 +51,11 @@ int32_t removeFolderIntoHardDrive(Folder *pFolder)
     return ret;
 }
 
-int32_t createFileIntoHardDrive(Folder *parentFolder, File *pFile, const char *data)
+int32_t createFileIntoHardDrive(Folder *parentFolder, File *pFile)
 {
     int32_t ret = SUCCESS;
 
-    ret =  insertFileIntoHD(parentFolder, pFile, data);
+    ret =  insertFileIntoHD(parentFolder, pFile);
 
     return ret;
 }

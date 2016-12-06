@@ -410,7 +410,7 @@ File * createNewFile(Folder *parent,
 
                     if (sendInfoToHD())
                     {
-                        ret = createFileIntoHardDrive(parent, newFile, NULL);
+                        ret = createFileIntoHardDrive(parent, newFile);
                     }
 
                     ret = createNewFpool(NULL, newFile, false, parent); 
