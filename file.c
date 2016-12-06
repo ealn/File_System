@@ -363,54 +363,67 @@ File * createNewFile(Folder *parent,
 
         if (ret == FILE_NOT_FOUND)
         {
-            newFile = allocFile(); 
+            ret = searchFileOrFolderIntoPool(parent, pName, NULL, NULL, true);
 
-            if (newFile != NULL)
+            if (ret == FOLDER_NOT_FOUND)
             {
-                newFile->permissions = permissions;
+                newFile = allocFile(); 
 
-                strcpy(newFile->name, pName);
+                if (newFile != NULL)
+                {
+                    newFile->permissions = permissions;
 
-                if (owner != NULL)
-                {
-                    strcpy(newFile->owner, owner); 
-                }
-                else
-                {
-                    strcpy(newFile->owner, getCurrentUser());
-                }
+                    strcpy(newFile->name, pName);
 
-                if (date != NULL)
-                {
-                    strcpy(newFile->date, date);
-                }
-                else
-                {
-                    getTimeStamp(newFile->date); 
-                }
+                    if (owner != NULL)
+                    {
+                        strcpy(newFile->owner, owner); 
+                    }
+                    else
+                    {
+                        strcpy(newFile->owner, getCurrentUser());
+                    }
 
-                if (pDiskInfo != NULL)
-                {
-                    memcpy(&(newFile->diskInfo), pDiskInfo, sizeof(DiskInfo));
-                }
-                else
-                {
-                    newFile->diskInfo.cluster = NULL_CLUSTER; 
-                    newFile->diskInfo.dataSector = NULL_SECTOR;
-                    newFile->diskInfo.dataSize = 0;
-                    newFile->diskInfo.parentCluster = NULL_CLUSTER;
-                    newFile->diskInfo.childCluster = NULL_CLUSTER;
-                    newFile->diskInfo.nextCluster = NULL_CLUSTER;
-                    newFile->diskInfo.prevCluster = NULL_CLUSTER;
-                }
+                    if (date != NULL)
+                    {
+                        strcpy(newFile->date, date);
+                    }
+                    else
+                    {
+                        getTimeStamp(newFile->date); 
+                    }
 
-                if (sendInfoToHD())
-                {
-                    ret = createFileIntoHardDrive(parent, newFile, NULL);
-                }
+                    if (pDiskInfo != NULL)
+                    {
+                        memcpy(&(newFile->diskInfo), pDiskInfo, sizeof(DiskInfo));
+                    }
+                    else
+                    {
+                        newFile->diskInfo.cluster = NULL_CLUSTER; 
+                        newFile->diskInfo.dataSector = NULL_SECTOR;
+                        newFile->diskInfo.dataSize = 0;
+                        newFile->diskInfo.parentCluster = NULL_CLUSTER;
+                        newFile->diskInfo.childCluster = NULL_CLUSTER;
+                        newFile->diskInfo.nextCluster = NULL_CLUSTER;
+                        newFile->diskInfo.prevCluster = NULL_CLUSTER;
+                    }
 
-                ret = createNewFpool(NULL, newFile, false, parent); 
+                    if (sendInfoToHD())
+                    {
+                        ret = createFileIntoHardDrive(parent, newFile, NULL);
+                    }
+
+                    ret = createNewFpool(NULL, newFile, false, parent); 
+                }
             }
+            else
+            {
+                ret = FOLDER_ALREADY_EXIST;
+            }
+        }
+        else
+        {
+            ret = FILE_ALREADY_EXIST;
         }
     }
     
