@@ -1464,6 +1464,37 @@ static int32_t runChmod(ParamList *pParamList)
         {
             if (pParamList->numberOfParameters == 2)
             {
+                Folder    * parentFolder = NULL;
+                Folder    * pFolder = NULL;
+                File      * pFile = NULL;
+                char      * pName = NULL;
+                Arguments * pArgValue = NULL;
+                Arguments * pArgPath = NULL;
+                uint16_t permission = 0;
+                char      hex[4];
+                strcpy(hex,"0x00");
+
+                pArgValue = getArgumentAtIndex(pParamList->parameters, 0);
+                strcat(hex,pArgValue->arg);
+                permission = (int)strtol(hex, NULL, 0);
+                if(permission <= 119 && permission >= 0){
+                    pArgPath = getArgumentAtIndex(pParamList->parameters, 1);
+                    parentFolder = getFolderFromPath(pArgPath->arg);
+                    getLastNameFromPath(pArgPath->arg, &pName);
+                    ret = searchFileOrFolderIntoPool(parentFolder, pName, &pFile, NULL, false);
+                    if(pFile != NULL){
+                        updateFilePermissions(pFile,permission);
+                    }
+                    else{
+                        ret = searchFileOrFolderIntoPool(parentFolder, pName, NULL, &pFolder, true);
+                    }
+                    if(pFolder != NULL){
+                        updateFolderPermissions(pFolder,permission);
+                    }
+                }
+                else{
+                    ret = INVALID_PARAMETERS;
+                }
                 
             }
             else
