@@ -339,7 +339,7 @@ static void printOutput(int32_t ret)
             break;                      
         case FILE_NOT_FOUND:              printf("\nERROR: File not found\n\n");
             break;                      
-        case FILE_ALREADY_EXIST:          printf("\nERROR: File already exist\n\n");
+        case FILE_ALREADY_EXIST:          printf("\nERROR: There is a file with the same name\n\n");
             break;                      
         case FILE_IS_ALREADY_OPENED:      printf("\nERROR: File already opened\n\n");
             break;                      
@@ -349,7 +349,7 @@ static void printOutput(int32_t ret)
             break;                      
         case FOLDER_NOT_FOUND:            printf("\nERROR: Folder not found\n\n");
             break;                      
-        case FOLDER_ALREADY_EXIST:        printf("\nERROR: Folder already exist\n\n");
+        case FOLDER_ALREADY_EXIST:        printf("\nERROR: There is a folder with the same name\n\n");
             break;                      
         case COMMAND_NOT_FOUND:           printf("\nERROR: Command not found\n\n");
             break;                      
