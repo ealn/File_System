@@ -1,8 +1,16 @@
 /*
- * Copyright (c) 2016 by Adrian Luna
+ * Copyright (c) 2016 by Efrain Adrian Luna Nevarez
+ *                       Emmanuel Salcido Maldonado
+ *                       Jesus Eduardo Silva Padilla
+ *                       Efrain Arrambide Barron
+ *                       Ricardo Isaac Gonzalez Ordaz
  * All Rights Reserved
  *
- * Author: Adrian Luna
+ * Authors: Efrain Adrian Luna Nevarez
+ *          Emmanuel Salcido Maldonado
+ *          Jesus Eduardo Silva Padilla
+ *          Efrain Arrambide Barron
+ *          Ricardo Isaac Gonzalez Ordaz
  *
  * Porpuse: Header that contains the constants to detect errors
  */
@@ -29,6 +37,7 @@ extern "C" {
                                    | (READ_ONLY << 4) \
                                    | (WRITE_ONLY << 4)
 
+#define EXIT                          1
 #define SUCCESS                       0
 #define FAIL                         -1
 #define FILE_NOT_FOUND               -2
@@ -43,6 +52,9 @@ extern "C" {
 #define FILE_CAN_NOT_BE_DELETED      -11
 #define FOLDER_CAN_NOT_BE_DELETED    -12
 #define FILE_CAN_NOT_BE_OVERWRITTEN  -13
+#define INVALID_PASSWORD             -14
+#define INVALID_USER                 -15
+#define INVALID_PERMISSIONS          -16
 
 #define HD_ERROR_OPENNING_HD_FILE            -50
 #define HD_ERROR_MASTER_BOOT_RECORD          -51

@@ -1,8 +1,16 @@
 /*
- * Copyright (c) 2016 by Adrian Luna
+ * Copyright (c) 2016 by Efrain Adrian Luna Nevarez
+ *                       Emmanuel Salcido Maldonado
+ *                       Jesus Eduardo Silva Padilla
+ *                       Efrain Arrambide Barron
+ *                       Ricardo Isaac Gonzalez Ordaz
  * All Rights Reserved
  *
- * Author: Adrian Luna
+ * Authors: Efrain Adrian Luna Nevarez
+ *          Emmanuel Salcido Maldonado
+ *          Jesus Eduardo Silva Padilla
+ *          Efrain Arrambide Barron
+ *          Ricardo Isaac Gonzalez Ordaz
  *
  * Porpuse: Implementation of hard drive
  */
@@ -917,7 +925,8 @@ int32_t readClusterRecursive(int32_t clusterNumber, Folder *parent)
                                                  pFolder->owner,
                                                  pFolder->permissions,
                                                  pFolder->date,
-                                                 &(pFolder->diskInfo));
+                                                 &(pFolder->diskInfo),
+                                                 NULL);
                 }
                 else
                 {
@@ -927,7 +936,8 @@ int32_t readClusterRecursive(int32_t clusterNumber, Folder *parent)
                                              pFile->owner,
                                              pFile->permissions,
                                              pFile->date,
-                                             &(pFile->diskInfo));
+                                             &(pFile->diskInfo),
+                                             NULL);
                 }
             }
 

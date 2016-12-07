@@ -1,8 +1,16 @@
 /*
- * Copyright (c) 2016 by Adrian Luna
+ * Copyright (c) 2016 by Efrain Adrian Luna Nevarez
+ *                       Emmanuel Salcido Maldonado
+ *                       Jesus Eduardo Silva Padilla
+ *                       Efrain Arrambide Barron
+ *                       Ricardo Isaac Gonzalez Ordaz
  * All Rights Reserved
  *
- * Author: Adrian Luna
+ * Authors: Efrain Adrian Luna Nevarez
+ *          Emmanuel Salcido Maldonado
+ *          Jesus Eduardo Silva Padilla
+ *          Efrain Arrambide Barron
+ *          Ricardo Isaac Gonzalez Ordaz
  *
  * Porpuse: Header that contains all functions to handle files
  */
@@ -22,7 +30,8 @@ File * createNewFile(Folder *parent,
                      const char *owner, 
                      uint16_t permissions, 
                      const char *date,
-                     DiskInfo *pDiskInfo);
+                     DiskInfo *pDiskInfo,
+                     int32_t *retVal);
 int32_t destroyFile(File * pFile);
 void printFileInfo(File *pFile, bool showDetails);
 int32_t updateFileDate(File *pFile, char *newModDate);

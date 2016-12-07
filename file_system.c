@@ -1,8 +1,16 @@
 /*
- * Copyright (c) 2016 by Adrian Luna
+ * Copyright (c) 2016 by Efrain Adrian Luna Nevarez
+ *                       Emmanuel Salcido Maldonado
+ *                       Jesus Eduardo Silva Padilla
+ *                       Efrain Arrambide Barron
+ *                       Ricardo Isaac Gonzalez Ordaz
  * All Rights Reserved
  *
- * Author: Adrian Luna
+ * Authors: Efrain Adrian Luna Nevarez
+ *          Emmanuel Salcido Maldonado
+ *          Jesus Eduardo Silva Padilla
+ *          Efrain Arrambide Barron
+ *          Ricardo Isaac Gonzalez Ordaz
  *
  * Porpuse: Implementation of methods to handle the file system
  */
@@ -15,35 +23,34 @@
 #include "console_utils.h"
 #include "memutils.h"
 
-#define MAX_USER_NAME         10
+#define DEFAULT_ROOT_PASSWORD "admin"
 
 Folder *g_rootFolder = NULL;
 Folder *g_currentFolder = NULL;
-char    currentUser[MAX_USER_NAME];
-bool    sendInfoToHardDrive = false;
+
+char          g_currentUser[MAX_USER_NAME];
+char          g_rootPassword[MAX_PASSWORD];
+bool          g_sendInfoToHardDrive = false;
+bool          g_changeToRoot = false;
 
 int32_t initFileSystem(void)
 {
     int32_t ret = SUCCESS;
 
-    memset(currentUser, 0, sizeof(char) * MAX_USER_NAME); 
-    strcpy(currentUser, DEFAULT_USER);
+    memset(g_currentUser, 0, sizeof(char) * MAX_USER_NAME); 
+    strcpy(g_currentUser, DEFAULT_USER);
+
+    memset(g_rootPassword, 0, sizeof(char) * MAX_PASSWORD); 
+    strcpy(g_rootPassword, DEFAULT_ROOT_PASSWORD);
 
     ret = initFromHardDrive();
-
-
-    //TODO: remove this part when initFromHardDrive() is working
-    /*if (1)
-    {
-        createRootFolder();
-    }*/
 
     return ret;
 }
 
 char * getCurrentUser(void)
 {
-    return currentUser;
+    return g_currentUser;
 }
 
 Folder * getCurrentFolder(void)
@@ -58,12 +65,12 @@ Folder * getRootFolder(void)
 
 bool setSetInfoToHD(bool value)
 {
-    sendInfoToHardDrive = value;
+    g_sendInfoToHardDrive = value;
 }
 
 bool sendInfoToHD(void)
 {
-    return sendInfoToHardDrive;
+    return g_sendInfoToHardDrive;
 }
 
 char * getCurrentFolderName(void)
@@ -82,7 +89,13 @@ Folder * createRootFolder(char *date, DiskInfo *pDiskInfo)
 {
     Folder *pRootFolder = NULL;
 
-    pRootFolder = createNewFolder(NULL, ROOT_FOLDER_NAME, ROOT_USER, DEFAULT_PERMISSIONS, date, pDiskInfo);
+    pRootFolder = createNewFolder(NULL, 
+                                  ROOT_FOLDER_NAME, 
+                                  ROOT_USER, 
+                                  DEFAULT_PERMISSIONS, 
+                                  date, 
+                                  pDiskInfo, 
+                                  NULL);
     g_rootFolder = pRootFolder;
     g_currentFolder = g_rootFolder;
 
@@ -352,4 +365,88 @@ int32_t getLastElementOfFolder(Folder *pFolder, File **pOutputFile, Folder **pOu
             }
         }
     }
+}
+
+int32_t changeToRoot(const char *password)
+{
+    int32_t ret = SUCCESS;
+
+    if (password != NULL
+        && (strcmp(password, g_rootPassword) == 0))
+    {
+        memset(g_currentUser, 0, sizeof(char) * MAX_USER_NAME); 
+        strcpy(g_currentUser, ROOT_USER);
+        g_changeToRoot = true;
+    }
+    else
+    {
+        ret = INVALID_PASSWORD;
+    }
+
+    return ret;
+}
+
+int32_t restoreUser(void)
+{
+    int32_t ret = SUCCESS;
+
+    if (g_changeToRoot)
+    {
+        memset(g_currentUser, 0, sizeof(char) * MAX_USER_NAME); 
+        strcpy(g_currentUser, DEFAULT_USER);
+        g_changeToRoot = false;
+    }
+    else
+    {
+        ret = FAIL;
+    }
+
+    return ret; 
+}
+
+bool isCurrentUserRoot(void)
+{
+    int32_t ret = false;
+
+    if (strcmp(getCurrentUser(), ROOT_USER) == 0)
+    {
+        ret = true;
+    }
+
+    return ret;
+}
+
+bool validateUser(char *owner)
+{
+    int32_t ret = false;
+
+    if (strcmp(getCurrentUser(), ROOT_USER) == 0
+        || strcmp(getCurrentUser(), owner) == 0)
+    {
+        ret = true;
+    }
+
+    return ret;
+}
+
+bool validatePermissions(uint16_t permissions)
+{
+    int32_t ret = false;
+
+    if (isCurrentUserRoot())
+    {
+        if (permissions | (WRITE_ONLY << 4))
+        {
+            ret = true;
+        }
+    }
+    else
+    {
+        if (permissions | WRITE_ONLY)
+        {
+            ret = true;
+        }
+    }
+
+    return ret;
 }

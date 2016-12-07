@@ -1,8 +1,16 @@
 /*
- * Copyright (c) 2016 by Adrian Luna
+ * Copyright (c) 2016 by Efrain Adrian Luna Nevarez
+ *                       Emmanuel Salcido Maldonado
+ *                       Jesus Eduardo Silva Padilla
+ *                       Efrain Arrambide Barron
+ *                       Ricardo Isaac Gonzalez Ordaz
  * All Rights Reserved
  *
- * Author: Adrian Luna
+ * Authors: Efrain Adrian Luna Nevarez
+ *          Emmanuel Salcido Maldonado
+ *          Jesus Eduardo Silva Padilla
+ *          Efrain Arrambide Barron
+ *          Ricardo Isaac Gonzalez Ordaz
  *
  * Porpuse: Implementation of methods to handle folders
  */
@@ -45,22 +53,29 @@ int32_t updateFolderDate(Folder *pFolder, char *newModDate)
 
     if (pFolder != NULL)
     {
-        if (newModDate != NULL
-            && (strcmp(pFolder->date, newModDate) != 0)
-            && (strlen(newModDate) == strlen(pFolder->date)))
+        if (validateUser(pFolder->owner))
         {
-            memset(pFolder->date, 0, sizeof(char)*MAX_DATE_SIZE);
-            strcpy(pFolder->date, newModDate);
+            if (newModDate != NULL
+                && (strcmp(pFolder->date, newModDate) != 0)
+                && (strlen(newModDate) == strlen(pFolder->date)))
+            {
+                memset(pFolder->date, 0, sizeof(char)*MAX_DATE_SIZE);
+                strcpy(pFolder->date, newModDate);
+            }
+            else
+            {
+                //update from the system
+                getTimeStamp(pFolder->date); 
+            }
+
+            if (sendInfoToHD())
+            {
+                ret = updateFolderIntoHardDrive(pFolder);
+            }
         }
         else
         {
-            //update from the system
-            getTimeStamp(pFolder->date); 
-        }
-
-        if (sendInfoToHD())
-        {
-            ret = updateFolderIntoHardDrive(pFolder);
+            ret = INVALID_USER;
         }
     }
 
@@ -75,12 +90,19 @@ int32_t updateFolderOwner(Folder *pFolder, char *newOwner)
         && newOwner != NULL
         && (strcmp(pFolder->owner, newOwner) != 0))
     {
-        memset(pFolder->owner, 0, sizeof(char)*MAX_OWNER_SIZE);
-        strcpy(pFolder->owner, newOwner);
-
-        if (sendInfoToHD())
+        if (isCurrentUserRoot())
         {
-            ret = updateFolderIntoHardDrive(pFolder);
+            memset(pFolder->owner, 0, sizeof(char) * MAX_OWNER_SIZE); 
+            strcpy(pFolder->owner, newOwner);
+
+            if (sendInfoToHD())
+            {
+                ret = updateFolderIntoHardDrive(pFolder);
+            }
+        }
+        else
+        {
+            ret = INVALID_USER;
         }
     }
 
@@ -94,11 +116,18 @@ int32_t updateFolderPermissions(Folder *pFolder, uint16_t newPermissions)
     if (pFolder != NULL
         && pFolder->permissions != newPermissions)
     {
-        pFolder->permissions = newPermissions;
-
-        if (sendInfoToHD())
+        if (validateUser(pFolder->owner))
         {
-            ret = updateFolderIntoHardDrive(pFolder);
+            pFolder->permissions = newPermissions; 
+
+            if (sendInfoToHD())
+            {
+                ret = updateFolderIntoHardDrive(pFolder);
+            }
+        }
+        else
+        {
+            ret = INVALID_USER;
         }
     }
 
@@ -111,19 +140,26 @@ static int32_t freeFolderMemory(Folder *pFolder)
 
     if (pFolder != NULL)
     {
-        if (sendInfoToHD())
+        if (validateUser(pFolder->owner))
         {
-            ret = removeFolderIntoHardDrive(pFolder);
-        }
-
-        if (ret == SUCCESS)
-        {
-            ret = removeFileOrFolderFromPool(NULL, pFolder, true); 
+            if (sendInfoToHD()) 
+            {
+                ret = removeFolderIntoHardDrive(pFolder);
+            }
 
             if (ret == SUCCESS)
             {
-                freeFolder(pFolder);
+                ret = removeFileOrFolderFromPool(NULL, pFolder, true); 
+
+                if (ret == SUCCESS)
+                {
+                    freeFolder(pFolder);
+                }
             }
+        }
+        else
+        {
+            ret = INVALID_USER;
         }
     }
     else
@@ -178,7 +214,8 @@ Folder * createNewFolder(Folder * parent,
                          const char *owner, 
                          uint16_t permissions, 
                          const char *date,
-                         DiskInfo *pDiskInfo)
+                         DiskInfo *pDiskInfo,
+                         int32_t  *retVal)
 {
     Folder * newFolder = NULL;
     int32_t  ret = SUCCESS;
@@ -252,7 +289,12 @@ Folder * createNewFolder(Folder * parent,
             ret = FOLDER_ALREADY_EXIST;
         }
     }
-    
+
+    if (retVal != NULL)
+    {
+        *retVal = ret;
+    }
+
     return newFolder;
 }
 
@@ -262,13 +304,20 @@ int32_t destroyFolder(Folder * pFolder, bool recursive)
 
     if (pFolder != NULL)
     {
-        if (recursive)
+        if (validateUser(pFolder->owner))
         {
-            ret = destroyFolderRecursive(pFolder->fpool);
+            if (recursive) 
+            {
+                ret = destroyFolderRecursive(pFolder->fpool);
+            }
+            else 
+            {
+                ret = freeFolderMemory(pFolder); 
+            }
         }
-        else 
+        else
         {
-            ret = freeFolderMemory(pFolder); 
+            ret = INVALID_USER;
         }
     }
 

@@ -1,8 +1,16 @@
 /*
- * Copyright (c) 2016 by Adrian Luna
+ * Copyright (c) 2016 by Efrain Adrian Luna Nevarez
+ *                       Emmanuel Salcido Maldonado
+ *                       Jesus Eduardo Silva Padilla
+ *                       Efrain Arrambide Barron
+ *                       Ricardo Isaac Gonzalez Ordaz
  * All Rights Reserved
  *
- * Author: - Adrian Luna
+ * Authors: Efrain Adrian Luna Nevarez
+ *          Emmanuel Salcido Maldonado
+ *          Jesus Eduardo Silva Padilla
+ *          Efrain Arrambide Barron
+ *          Ricardo Isaac Gonzalez Ordaz
  *
  * Porpuse: Console utils
  */
@@ -391,7 +399,7 @@ void destroyStringsParsed(char ** matrixStr, uint32_t numberOfElements)
     }
 }
 
-void getArgumentsFromConsole(char * consoleStr, char *** opArguments, uint32_t *oNumberOfArgs)
+void getArgumentsFromConsole(const char * consoleStr, char *** opArguments, uint32_t *oNumberOfArgs)
 {
     if (oNumberOfArgs != NULL
         && opArguments != NULL)
@@ -405,6 +413,40 @@ void getArgumentsFromConsole(char * consoleStr, char *** opArguments, uint32_t *
         //parse string to get the arguments
         parseString(outConsoleStr, ' ', opArguments, oNumberOfArgs);
     }
+}
+
+char * getPasswordFromConsole(const char * consoleStr, uint32_t size)
+{
+    char * password = NULL;
+
+    if (size > 0)
+    {
+        char      c;
+        uint32_t  i = 0;
+
+        password = (char *)MEMALLOC(sizeof(char) * (size + 1)); //add the null character
+
+        if (consoleStr != NULL)
+        {
+            printf(consoleStr);
+        }
+
+        for (i = 0; i < size; i++)
+        {
+            c = getchar();
+
+            if (iscntrl(c))
+            {
+                break;
+            }
+            else
+            {
+                password[i] = c;
+            }
+        }
+    }
+
+    return password;
 }
 
 

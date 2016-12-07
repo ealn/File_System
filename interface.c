@@ -1,8 +1,16 @@
 /*
- * Copyright (c) 2016 by Emmanuel
+ * Copyright (c) 2016 by Efrain Adrian Luna Nevarez
+ *                       Emmanuel Salcido Maldonado
+ *                       Jesus Eduardo Silva Padilla
+ *                       Efrain Arrambide Barron
+ *                       Ricardo Isaac Gonzalez Ordaz
  * All Rights Reserved
  *
- * Author: Emmanuel
+ * Authors: Efrain Adrian Luna Nevarez
+ *          Emmanuel Salcido Maldonado
+ *          Jesus Eduardo Silva Padilla
+ *          Efrain Arrambide Barron
+ *          Ricardo Isaac Gonzalez Ordaz
  *
  * Porpuse: Implementation of interface between the file system and the hard drive 
  */
@@ -87,9 +95,6 @@ int32_t writeDataIntoFile(File *pFile, const char *newInfo)
     return ret;
 }
 
-//This function will be used to update information
-//of file into hard drive for example when the shell
-//modifies the date.
 int32_t updateFileIntoHardDrive(File *pFile)
 {
     int32_t ret = SUCCESS;

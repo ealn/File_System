@@ -1,8 +1,16 @@
 /*
- * Copyright (c) 2016 by Adrian Luna
+ * Copyright (c) 2016 by Efrain Adrian Luna Nevarez
+ *                       Emmanuel Salcido Maldonado
+ *                       Jesus Eduardo Silva Padilla
+ *                       Efrain Arrambide Barron
+ *                       Ricardo Isaac Gonzalez Ordaz
  * All Rights Reserved
  *
- * Author: Adrian Luna
+ * Authors: Efrain Adrian Luna Nevarez
+ *          Emmanuel Salcido Maldonado
+ *          Jesus Eduardo Silva Padilla
+ *          Efrain Arrambide Barron
+ *          Ricardo Isaac Gonzalez Ordaz
  *
  * Porpuse: Header that contains all functions of file system
  */
@@ -33,6 +41,11 @@ Folder * getParentFolderOfFile(File *pFile);
 Folder * getParentFolderOfFolder(Folder *pFolder);
 Folder * getRootFolder(void);
 int32_t getLastElementOfFolder(Folder *pFolder, File **pOutputFile, Folder **pOutputFolder);
+int32_t restoreUser(void);
+int32_t changeToRoot(const char *password);
+bool isCurrentUserRoot(void);
+bool validateUser(char *owner);
+bool validatePermissions(uint16_t permissions);
 
 //Defines
 #define ROOT_FOLDER_NAME    "/"
@@ -41,6 +54,8 @@ int32_t getLastElementOfFolder(Folder *pFolder, File **pOutputFile, Folder **pOu
 #define CURRENT_FOLDER      "."
 #define ROOT_USER           "root"
 #define DEFAULT_USER        "user"
+#define MAX_USER_NAME       10
+#define MAX_PASSWORD        10
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

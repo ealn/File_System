@@ -1,8 +1,16 @@
 /*
- * Copyright (c) 2016 by Adrian Luna
+ * Copyright (c) 2016 by Efrain Adrian Luna Nevarez
+ *                       Emmanuel Salcido Maldonado
+ *                       Jesus Eduardo Silva Padilla
+ *                       Efrain Arrambide Barron
+ *                       Ricardo Isaac Gonzalez Ordaz
  * All Rights Reserved
  *
- * Author: - Adrian Luna
+ * Authors: Efrain Adrian Luna Nevarez
+ *          Emmanuel Salcido Maldonado
+ *          Jesus Eduardo Silva Padilla
+ *          Efrain Arrambide Barron
+ *          Ricardo Isaac Gonzalez Ordaz
  *
  * Porpuse: Shell implementation
  */
@@ -20,6 +28,7 @@
 #include "f_pool.h"
 
 #define PROMPT_SIZE      100
+#define SUPER_USER       "su"
 #define DIST_NAME        "File-System-1.0: "
 #define SEPARATOR        "@"
 #define COMMAND_CHAR     " $ "
@@ -155,7 +164,7 @@ static void destroyParamList(ParamList * pParamList)
         }
         if (pParamList->parameters != NULL)
         {
-            freeArguments(pParamList->flags);
+            freeArguments(pParamList->parameters);
         }
 
         freeParamList(pParamList);
@@ -283,12 +292,10 @@ int32_t runShell(void)
         if (args != NULL
             && nargs > 0)
         {
-            if (validateArg(args))
-            {
-                ret = runCommand(args, nargs);
-                printOutput(ret);
-            }
-            else
+            ret = runCommand(args, nargs);
+            printOutput(ret);
+
+            if (ret == EXIT)
             {
                 loop = false;
             }
@@ -362,26 +369,15 @@ static void printOutput(int32_t ret)
             break;
         case FILE_CAN_NOT_BE_OVERWRITTEN: printf("\nERROR: File can not be overwritten\n\n");
             break;
+        case INVALID_PASSWORD:            printf("\nERROR: Invalid Password\n\n");
+            break;
+        case INVALID_USER:                printf("\nERROR: Your user does not have permissions to perform this action\n\n");
+            break;
+        case INVALID_PERMISSIONS:         printf("\nERROR: The file cannot be modified due to permissions\n\n");
+            break;
         default:
             break;
     }
-}
-
-static bool validateArg(char **args)
-{
-    bool ret = true;
-
-    if (args != NULL)
-    {
-        //TODO: implement this command as function
-        if (strcmp("exit", args[0]) == 0)
-        {
-            //exit of shell
-            ret = false;
-        }
-    }
-
-    return ret;
 }
 
 static int32_t runCommand(char **args, uint32_t nargs)
@@ -691,7 +687,7 @@ static int32_t runHelp(ParamList *pParamList)
 {
     int32_t ret = SUCCESS;
 
-    printf("\nCommands suported:\n\n");
+    printf("\nSupported commands:\n\n");
     printf("help    : show help\n");
     printf("cd      : change directory\n");
     printf("ls      : list files\n");
@@ -1044,7 +1040,7 @@ static int32_t runRm(ParamList *pParamList)
                                 && pFile != NULL)
                             {
                                 if (forceDelete
-                                    || (strcmp(getCurrentUser(), ROOT_USER) == 0)
+                                    || isCurrentUserRoot()
                                     || getYesOrNotFromConsole("Are you sure you want to delete this file [y,n]? "))
                                 {
                                     ret = destroyFile(pFile); 
@@ -1065,7 +1061,7 @@ static int32_t runRm(ParamList *pParamList)
                                         || getNumberOfChilds(pFolder) == 0)
                                     {
                                         if (forceDelete
-                                            || (strcmp(getCurrentUser(), ROOT_USER) == 0)
+                                            || isCurrentUserRoot()
                                             || getYesOrNotFromConsole("Are you sure you want to delete this folder [y,n]? "))
                                         {
                                             ret = destroyFolder(pFolder, recursive); 
@@ -1126,7 +1122,13 @@ static int32_t runMkdir(ParamList *pParamList)
 
                         if (parentFolder != NULL)
                         {
-                            createNewFolder(parentFolder, pName, NULL, DEFAULT_PERMISSIONS, NULL, NULL);
+                            createNewFolder(parentFolder, 
+                                            pName, 
+                                            NULL, 
+                                            DEFAULT_PERMISSIONS, 
+                                            NULL, 
+                                            NULL, 
+                                            &ret);
                         }
                         if (pName != NULL) 
                         {
@@ -1445,12 +1447,8 @@ static int32_t runTouch(ParamList *pParamList)
                                                       NULL, 
                                                       DEFAULT_PERMISSIONS, 
                                                       NULL,
-                                                      NULL);
-
-                                if (pFile != NULL)
-                                {
-                                    ret = SUCCESS;
-                                }
+                                                      NULL,
+                                                      &ret);
                             }
                         }
 
@@ -1494,16 +1492,23 @@ static int32_t runChmod(ParamList *pParamList)
                 char      * pName = NULL;
                 Arguments * pArgValue = NULL;
                 Arguments * pArgPath = NULL;
-                uint16_t permission = 0;
+                uint16_t    permission = 0;
+                uint32_t    len = 0;
                 char      hex[4];
                 strcpy(hex,"0x00");
 
                 pArgValue = getArgumentAtIndex(pParamList->parameters, 0);
                 strcat(hex,pArgValue->arg);
-                permission = (int)strtol(hex, NULL, 0);
+                permission = (uint16_t)strtol(hex, NULL, 0);
+                len = strlen(pArgValue->arg);
 
-                if(permission <= 119 && permission >= 0)
+                if((len == 1
+                      && ((pArgValue->arg[0] <= '7') && (pArgValue->arg[0] >= '1')))
+                    || (len == 2
+                        && ((pArgValue->arg[0] <= '7') && (pArgValue->arg[0] >= '1'))
+                        && ((pArgValue->arg[1] <= '7') && (pArgValue->arg[1] >= '1'))))
                 {
+
                     pArgPath = getArgumentAtIndex(pParamList->parameters, 1);
                     parentFolder = getFolderFromPath(pArgPath->arg);
                     getLastNameFromPath(pArgPath->arg, &pName);
@@ -1511,7 +1516,7 @@ static int32_t runChmod(ParamList *pParamList)
 
                     if(pFile != NULL)
                     {
-                        updateFilePermissions(pFile,permission);
+                        ret = updateFilePermissions(pFile,permission);
                     }
                     else
                     {
@@ -1520,6 +1525,11 @@ static int32_t runChmod(ParamList *pParamList)
                     if(pFolder != NULL)
                     {
                         updateFolderPermissions(pFolder,permission);
+                    }
+
+                    if (pName != NULL) 
+                    {
+                        MEMFREE(pName); 
                     }
                 }
                 else
@@ -1552,7 +1562,26 @@ static int32_t runSudo(ParamList *pParamList)
         {
             if (pParamList->numberOfParameters == 1)
             {
-                
+                Arguments * pArg = NULL;
+                char      * password = NULL;
+
+                pArg = getArgumentAtIndex(pParamList->parameters, 0);
+
+                if (pArg != NULL
+                    && strcmp(pArg->arg, SUPER_USER) == 0)
+                {
+                    password = getPasswordFromConsole("Enter root password: ", MAX_PASSWORD);
+
+                    if (password != NULL)
+                    {
+                        ret = changeToRoot(password);
+                        MEMFREE((void *)password);
+                    }
+                }
+                else
+                {
+                    ret = INVALID_PARAMETERS;
+                }
             }
             else
             {
@@ -1733,7 +1762,20 @@ static int32_t runExit(ParamList *pParamList)
 
     if (pParamList != NULL)
     {
-        
+        if (searchFlag(pParamList, HELP_FLAG))
+        {
+            printExitHelp(true);
+        }
+        else
+        {
+            ret = restoreUser();
+
+            //If we don't need to restore the previous user
+            if (ret == FAIL)
+            {
+                ret = EXIT;
+            }
+        }
     }
 
     return ret;

@@ -1,8 +1,16 @@
 /*
- * Copyright (c) 2016 by Adrian Luna
+ * Copyright (c) 2016 by Efrain Adrian Luna Nevarez
+ *                       Emmanuel Salcido Maldonado
+ *                       Jesus Eduardo Silva Padilla
+ *                       Efrain Arrambide Barron
+ *                       Ricardo Isaac Gonzalez Ordaz
  * All Rights Reserved
  *
- * Author: Adrian Luna
+ * Authors: Efrain Adrian Luna Nevarez
+ *          Emmanuel Salcido Maldonado
+ *          Jesus Eduardo Silva Padilla
+ *          Efrain Arrambide Barron
+ *          Ricardo Isaac Gonzalez Ordaz
  *
  * Porpuse: Implementation of methods to handle files
  */
@@ -98,13 +106,26 @@ int32_t writeFile(Folder *parent, char *pName, const char *input)
     {
         uint32_t index = 0;
 
-        //TODO check permissions and owner
         ret = searchFileOrFolderIntoPool(parent, pName, &pFile, NULL, false);
 
         if (ret == SUCCESS
             && pFile != NULL)
         {
-            ret = writeDataIntoFile(pFile, input);
+            if (validateUser(pFile->owner))
+            {
+                if (validatePermissions(pFile->permissions))
+                {
+                    ret = writeDataIntoFile(pFile, input); 
+                }
+                else
+                {
+                    ret = INVALID_PERMISSIONS;
+                }
+            }
+            else
+            {
+                ret = INVALID_USER;
+            }
         }
     }
     else
@@ -142,22 +163,29 @@ int32_t updateFileDate(File *pFile, char *newModDate)
 
     if (pFile != NULL)
     {
-        if (newModDate != NULL
-            && (strcmp(pFile->date, newModDate) != 0)
-            && (strlen(newModDate) == strlen(pFile->date)))
+        if (validateUser(pFile->owner))
         {
-            memset(pFile->date, 0, sizeof(char)*MAX_DATE_SIZE);
-            strcpy(pFile->date, newModDate);
+            if (newModDate != NULL
+                && (strcmp(pFile->date, newModDate) != 0)
+                && (strlen(newModDate) == strlen(pFile->date)))
+            {
+                memset(pFile->date, 0, sizeof(char)*MAX_DATE_SIZE);
+                strcpy(pFile->date, newModDate);
+            }
+            else
+            {
+                //update from the system
+                getTimeStamp(pFile->date); 
+            }
+
+            if (sendInfoToHD())
+            {
+                ret = updateFileIntoHardDrive(pFile);
+            }
         }
         else
         {
-            //update from the system
-            getTimeStamp(pFile->date); 
-        }
-
-        if (sendInfoToHD())
-        {
-            ret = updateFileIntoHardDrive(pFile);
+            ret = INVALID_USER;
         }
     }
 
@@ -172,12 +200,19 @@ int32_t updateFileOwner(File *pFile, char *newOwner)
         && newOwner != NULL
         && (strcmp(pFile->owner, newOwner) != 0))
     {
-        memset(pFile->owner, 0, sizeof(char)*MAX_OWNER_SIZE);
-        strcpy(pFile->owner, newOwner);
-
-        if (sendInfoToHD())
+        if (isCurrentUserRoot())
         {
-            ret = updateFileIntoHardDrive(pFile);
+            memset(pFile->owner, 0, sizeof(char) * MAX_OWNER_SIZE); 
+            strcpy(pFile->owner, newOwner);
+
+            if (sendInfoToHD())
+            {
+                ret = updateFileIntoHardDrive(pFile);
+            }
+        }
+        else
+        {
+            ret = INVALID_USER;
         }
     }
 
@@ -191,11 +226,18 @@ int32_t updateFilePermissions(File *pFile, uint16_t newPermissions)
     if (pFile != NULL
         && pFile->permissions != newPermissions)
     {
-        pFile->permissions = newPermissions;
-
-        if (sendInfoToHD())
+        if (validateUser(pFile->owner))
         {
-            ret = updateFileIntoHardDrive(pFile);
+            pFile->permissions = newPermissions; 
+
+            if (sendInfoToHD())
+            {
+                ret = updateFileIntoHardDrive(pFile);
+            }
+        }
+        else
+        {
+            ret = INVALID_USER;
         }
     }
 
@@ -217,6 +259,7 @@ int32_t copyFiles(File *srcFile, Folder *dstFolder)
                                 srcFile->owner,
                                 srcFile->permissions,
                                 srcFile->date,
+                                NULL,
                                 NULL);
 
         if (newFile != NULL)
@@ -238,7 +281,8 @@ File * createNewFile(Folder *parent,
                      const char *owner, 
                      uint16_t permissions, 
                      const char *date,
-                     DiskInfo *pDiskInfo)
+                     DiskInfo *pDiskInfo,
+                     int32_t  *retVal)
 {
     File   * newFile = NULL;
     int32_t  ret = SUCCESS;
@@ -312,7 +356,12 @@ File * createNewFile(Folder *parent,
             ret = FILE_ALREADY_EXIST;
         }
     }
-    
+
+    if (retVal != NULL)
+    {
+        *retVal = ret;
+    }
+
     return newFile;
 }
 
@@ -322,19 +371,26 @@ int32_t destroyFile(File * pFile)
 
     if (pFile != NULL)
     {
-        if (sendInfoToHD())
+        if (validateUser(pFile->owner))
         {
-            ret = removeFileIntoHardDrive(pFile);
-        }
-
-        if (ret == SUCCESS)
-        {
-            ret = removeFileOrFolderFromPool(pFile, NULL, false); 
+            if (sendInfoToHD()) 
+            {
+                ret = removeFileIntoHardDrive(pFile);
+            }
 
             if (ret == SUCCESS)
             {
-                freeFile(pFile);
+                ret = removeFileOrFolderFromPool(pFile, NULL, false); 
+
+                if (ret == SUCCESS)
+                {
+                    freeFile(pFile);
+                }
             }
+        }
+        else
+        {
+            ret = INVALID_USER;
         }
     }
     else

@@ -1,8 +1,16 @@
 /*
- * Copyright (c) 2016 by Adrian Luna
+ * Copyright (c) 2016 by Efrain Adrian Luna Nevarez
+ *                       Emmanuel Salcido Maldonado
+ *                       Jesus Eduardo Silva Padilla
+ *                       Efrain Arrambide Barron
+ *                       Ricardo Isaac Gonzalez Ordaz
  * All Rights Reserved
  *
- * Author: Adrian Luna
+ * Authors: Efrain Adrian Luna Nevarez
+ *          Emmanuel Salcido Maldonado
+ *          Jesus Eduardo Silva Padilla
+ *          Efrain Arrambide Barron
+ *          Ricardo Isaac Gonzalez Ordaz
  *
  * Porpuse: Header that contains all utils for the console
  */
@@ -36,9 +44,10 @@ uint8_t createMenuWithMultipleOptions(const char * title,
                                       int32_t lowerLimit, 
                                       int32_t upperLimit, 
                                       bool needCleanScreen);
-void getArgumentsFromConsole(char * consoleStr, char *** opArguments, uint32_t *oNumberOfArgs);
+void getArgumentsFromConsole(const char * consoleStr, char *** opArguments, uint32_t *oNumberOfArgs);
 void parseString(const char *strToBeParsed, const char separator, char ***opMatrix, uint32_t *oNumberOfElements);
 void destroyStringsParsed(char ** matrixStr, uint32_t numberOfElement);
+char * getPasswordFromConsole(const char * consoleStr, uint32_t size);
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

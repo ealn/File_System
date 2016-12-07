@@ -1,8 +1,16 @@
 /*
- * Copyright (c) 2016 by Adrian Luna
+ * Copyright (c) 2016 by Efrain Adrian Luna Nevarez
+ *                       Emmanuel Salcido Maldonado
+ *                       Jesus Eduardo Silva Padilla
+ *                       Efrain Arrambide Barron
+ *                       Ricardo Isaac Gonzalez Ordaz
  * All Rights Reserved
  *
- * Author: Adrian Luna
+ * Authors: Efrain Adrian Luna Nevarez
+ *          Emmanuel Salcido Maldonado
+ *          Jesus Eduardo Silva Padilla
+ *          Efrain Arrambide Barron
+ *          Ricardo Isaac Gonzalez Ordaz
  *
  * Porpuse: Main program
  */
@@ -18,8 +26,6 @@ int32_t main(void)
 {
     int32_t ret = SUCCESS;
 
-    initTrace();
-
     ret = initFileSystem();
 
     if (ret == SUCCESS)
@@ -27,8 +33,6 @@ int32_t main(void)
         ret = runShell();
         closeFileSystem();
     }
-
-    termTrace();
     
     return ret;
 }
