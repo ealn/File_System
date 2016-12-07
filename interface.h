@@ -23,7 +23,7 @@ int32_t removeFolderIntoHardDrive(Folder *pFolder);
 int32_t createFileIntoHardDrive(Folder *parentFolder, File *pFile);
 int32_t removeFileIntoHardDrive(File *pFile);
 char *  readDataFromFile(File *pFile);
-int32_t writeDataIntoFile(File *pFile, char *newInfo);
+int32_t writeDataIntoFile(File *pFile, const char *newInfo);
 int32_t updateFileIntoHardDrive(File *pFile);
 int32_t updateFolderIntoHardDrive(Folder *pFolder);
 

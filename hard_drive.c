@@ -20,7 +20,7 @@
 #define ATTR_FILE_READ_WRITE_CREATE "w+"
 
 #define MASTER_BOOT_RECORD_ADDRESS  0
-#define DEFAULT_CLUSTERS            512
+#define DEFAULT_CLUSTERS            4096
 #define DEFAULT_DATA_SECTORS        512
 #define CLUSTER_SIZE                sizeof(Cluster)
 #define DATA_SECTOR_SIZE            sizeof(DataSector)
@@ -267,21 +267,21 @@ int32_t getDataSectorAddressAtIndex(int32_t index)
     return address;
 }
 
-void writeHD(char *buff, uint32_t address, uint32_t size)
+void writeHD(void *buff, uint32_t address, uint32_t size)
 {
     if (g_hardDisk != NULL)
     {
         fseek(g_hardDisk, address, SEEK_SET);
-        fwrite((void *)buff, 1, size, g_hardDisk); 
+        fwrite(buff, 1, size, g_hardDisk); 
     }
 }
 
-void readHD(char *outputBuff, uint32_t address, uint32_t size)
+void readHD(void *outputBuff, uint32_t address, uint32_t size)
 {
     if (g_hardDisk != NULL)
     {
         fseek(g_hardDisk, address, SEEK_SET);
-        fread((void *)outputBuff, 1, size, g_hardDisk); 
+        fread(outputBuff, 1, size, g_hardDisk); 
     }
 }
 
@@ -335,7 +335,7 @@ int32_t writeMasterBootRecordIntoHD(void)
     if (g_hardDisk != NULL
         && g_masterBootRecord != NULL)
     {
-        writeHD((char *)g_masterBootRecord, MASTER_BOOT_RECORD_ADDRESS, MASTER_BOOT_RECORD_SIZE);
+        writeHD((void *)g_masterBootRecord, MASTER_BOOT_RECORD_ADDRESS, MASTER_BOOT_RECORD_SIZE);
     }
     else
     {
@@ -350,7 +350,7 @@ void getMasterBootRecordFromHD(void)
     if (g_hardDisk != NULL
         && g_masterBootRecord != NULL)
     {
-        readHD((char *)g_masterBootRecord, MASTER_BOOT_RECORD_ADDRESS, MASTER_BOOT_RECORD_SIZE);
+        readHD((void *)g_masterBootRecord, MASTER_BOOT_RECORD_ADDRESS, MASTER_BOOT_RECORD_SIZE);
     }
 }
 
@@ -387,7 +387,7 @@ int32_t formatHardDisk(void)
         initDataSector(&dataSector);
 
         //write the buffer into hard drive
-        writeHD(buff, 0, DEFAULT_HARD_DISK_SIZE);
+        writeHD((void *)buff, 0, DEFAULT_HARD_DISK_SIZE);
 
         setDefaultMasterBootRecord();
         writeMasterBootRecordIntoHD();
@@ -399,7 +399,7 @@ int32_t formatHardDisk(void)
 
             if (address != INVALID_ADDRESS)
             {
-                writeHD((char *)&cluster, address, CLUSTER_SIZE); 
+                writeHD((void *)&cluster, address, CLUSTER_SIZE); 
             }
         }
 
@@ -410,7 +410,7 @@ int32_t formatHardDisk(void)
 
             if (address != INVALID_ADDRESS)
             {
-                writeHD((char *)&dataSector, address, DATA_SECTOR_SIZE); 
+                writeHD((void *)&dataSector, address, DATA_SECTOR_SIZE); 
             }
         }
     }
@@ -464,7 +464,7 @@ int32_t getDataSectorAtIndex(int32_t index, DataSector * pOutputDataSector, int3
 
         if (address != INVALID_ADDRESS)
         {
-            readHD((char *)pOutputDataSector, address, DATA_SECTOR_SIZE); 
+            readHD((void *)pOutputDataSector, address, DATA_SECTOR_SIZE); 
             dataSector = index;
         }
     }
@@ -520,7 +520,7 @@ int32_t getClusterAtIndex(int32_t index, Cluster * pOutputCluster, int32_t *pOut
 
         if (address != INVALID_ADDRESS)
         {
-            readHD((char *)pOutputCluster, address, CLUSTER_SIZE); 
+            readHD((void *)pOutputCluster, address, CLUSTER_SIZE); 
             cluster = index;
         }
     }
@@ -571,7 +571,7 @@ void freeDataSector(int32_t index)
             && address != INVALID_ADDRESS)
         {
             //clean cluster
-            writeHD((char *)&emptyDataSector, address, DATA_SECTOR_SIZE);
+            writeHD((void *)&emptyDataSector, address, DATA_SECTOR_SIZE);
         }
 
         g_masterBootRecord->numberOfDataSectorsUsed--;
@@ -673,15 +673,15 @@ void unlinkCluster(Cluster * pCluster)
 
         if (parentClusterIndex != NULL_CLUSTER)
         {
-            writeHD((char *)&parentCluster, parentAddress, CLUSTER_SIZE); 
+            writeHD((void *)&parentCluster, parentAddress, CLUSTER_SIZE); 
         }
         if (prevClusterIndex != NULL_CLUSTER)
         {
-            writeHD((char *)&prevCluster, prevAddress, CLUSTER_SIZE); 
+            writeHD((void *)&prevCluster, prevAddress, CLUSTER_SIZE); 
         }
         if (nextClusterIndex != NULL_CLUSTER)
         {
-            writeHD((char *)&nextCluster, nextAddress, CLUSTER_SIZE); 
+            writeHD((void *)&nextCluster, nextAddress, CLUSTER_SIZE); 
         }
     }
 }
@@ -713,14 +713,14 @@ void freeCluster(int32_t index)
             unlinkCluster(&cluster);
 
             //clean cluster
-            writeHD((char *)&emptyCluster, address, CLUSTER_SIZE);
+            writeHD((void *)&emptyCluster, address, CLUSTER_SIZE);
             g_masterBootRecord->numberOfClustersUsed--;
             writeMasterBootRecordIntoHD();
         }
     }
 }
 
-int32_t createDataSector(char * newData)
+int32_t createDataSector(const char * newData)
 {
     int32_t newDataSector = NULL_SECTOR;
 
@@ -767,7 +767,7 @@ int32_t createDataSector(char * newData)
             }
 
             newDataSector = indexDataSector;
-            writeHD((char *)&dataSector, address, DATA_SECTOR_SIZE);
+            writeHD((void *)&dataSector, address, DATA_SECTOR_SIZE);
 
             g_masterBootRecord->numberOfDataSectorsUsed++; 
             writeMasterBootRecordIntoHD();
@@ -801,8 +801,8 @@ int32_t createDataSector(char * newData)
                     //link the data sectors
                     nextDataSector.prevDataSector = indexDataSector;
                     dataSector.nextDataSector = indexNextDataSector;
-                    writeHD((char *)&nextDataSector, nextAddress, DATA_SECTOR_SIZE);
-                    writeHD((char *)&dataSector, address, DATA_SECTOR_SIZE);
+                    writeHD((void *)&nextDataSector, nextAddress, DATA_SECTOR_SIZE);
+                    writeHD((void *)&dataSector, address, DATA_SECTOR_SIZE);
 
                     //exchange data sectors
                     memcpy(&dataSector, &nextDataSector, DATA_SECTOR_SIZE);
@@ -810,7 +810,8 @@ int32_t createDataSector(char * newData)
                     indexDataSector = indexNextDataSector;
 
                     g_masterBootRecord->numberOfDataSectorsUsed++; 
-                    writeMasterBootRecordIntoHD();
+                    //fix
+                    //writeMasterBootRecordIntoHD();
                 }
                 else
                 {
@@ -823,14 +824,17 @@ int32_t createDataSector(char * newData)
     return newDataSector;
 }
 
-int32_t writeDataSector(int32_t dataSector, char * newData)
+int32_t writeDataSector(int32_t dataSector, const char * newData)
 {
     int32_t newDataSector = NULL_SECTOR;
 
-    if (dataSector != NULL_SECTOR
-        && newData != NULL)
+    if (newData != NULL)
     {
-        freeLinkDataSector(dataSector);
+        if (dataSector != NULL_SECTOR)
+        {
+            freeLinkDataSector(dataSector); 
+        }
+
         newDataSector = createDataSector(newData);
     }
 
@@ -841,7 +845,8 @@ char * readDataSector(int32_t dataSectorIndex, uint32_t len)
 {
     char * str = NULL;
 
-    if (dataSectorIndex != NULL_SECTOR)
+    if (dataSectorIndex != NULL_SECTOR
+        && len > 0)
     {
         DataSector dataSector;
         DataSector nextDataSector;
@@ -855,8 +860,7 @@ char * readDataSector(int32_t dataSectorIndex, uint32_t len)
         {
             str = (char *)MEMALLOC(sizeof(char)*(len + 1)); //add the null character
 
-            if (str != NULL
-                && len > 0)
+            if (str != NULL)
             {
                 strcpy(str, dataSector.data); 
                 pointerStr = strlen(dataSector.data);
@@ -1021,15 +1025,12 @@ int32_t insertFileIntoHD(Folder *parentFolder, File *pFile)
         Cluster    cluster;
         Cluster    parentCluster;
         Cluster    lastElementCluster;
-        DataSector dataSector;
         int32_t    parentClusterIndex = NULL_CLUSTER;
         int32_t    clusterIndex = NULL_CLUSTER;
         int32_t    lastElementClusterIndex = NULL_CLUSTER;
         int32_t    address = INVALID_ADDRESS;
         int32_t    parentAddress = INVALID_ADDRESS;
-        int32_t    dataSectorAddress = INVALID_ADDRESS;
         int32_t    lastElementAddress = INVALID_ADDRESS;
-        int32_t    indexDataSector = NULL_SECTOR;
         bool       lastElementIsFolder = false;
 
         clusterIndex = getFreeCluster();
@@ -1051,18 +1052,6 @@ int32_t insertFileIntoHD(Folder *parentFolder, File *pFile)
             {
                 cluster.isUsed = 1;
                 diskInfo->cluster = clusterIndex;
-
-                //create Data Sector
-                indexDataSector = getFreeDataSector();
-
-                if (indexDataSector != NULL_SECTOR)
-                {
-                    getDataSectorAtIndex(indexDataSector, &dataSector, &dataSectorAddress);
-                    dataSector.isUsed = 1;
-                    writeHD((char *)&dataSector, dataSectorAddress, DATA_SECTOR_SIZE);
-
-                    diskInfo->dataSector = indexDataSector;
-                }
 
                 //link the parent folder
                 if (parentDiskInfo != NULL)
@@ -1111,7 +1100,7 @@ int32_t insertFileIntoHD(Folder *parentFolder, File *pFile)
                                        sizeof(DiskInfo));
                             }
 
-                            writeHD((char *)&lastElementCluster, lastElementAddress, CLUSTER_SIZE); 
+                            writeHD((void *)&lastElementCluster, lastElementAddress, CLUSTER_SIZE); 
                         }
                     }
 
@@ -1122,14 +1111,14 @@ int32_t insertFileIntoHD(Folder *parentFolder, File *pFile)
                                parentDiskInfo,
                                sizeof(DiskInfo));
 
-                        writeHD((char *)&parentCluster, parentAddress, CLUSTER_SIZE); 
+                        writeHD((void *)&parentCluster, parentAddress, CLUSTER_SIZE); 
                     }
                 }
 
                 memcpy(&cluster.fileFolder.file, pFile, sizeof(File));
 
                 //Write info in new cluster
-                writeHD((char *)&cluster, address, CLUSTER_SIZE);
+                writeHD((void *)&cluster, address, CLUSTER_SIZE);
 
                 g_masterBootRecord->numberOfClustersUsed++;
                 writeMasterBootRecordIntoHD();
@@ -1228,7 +1217,7 @@ int32_t insertFolderIntoHD(Folder *parentFolder, Folder *pFolder)
                                        sizeof(DiskInfo));
                             }
 
-                            writeHD((char *)&lastElementCluster, lastElementAddress, CLUSTER_SIZE); 
+                            writeHD((void *)&lastElementCluster, lastElementAddress, CLUSTER_SIZE); 
                         }
                     }
 
@@ -1239,14 +1228,14 @@ int32_t insertFolderIntoHD(Folder *parentFolder, Folder *pFolder)
                                parentDiskInfo,
                                sizeof(DiskInfo));
 
-                        writeHD((char *)&parentCluster, parentAddress, CLUSTER_SIZE); 
+                        writeHD((void *)&parentCluster, parentAddress, CLUSTER_SIZE); 
                     }
                 }
 
                 memcpy(&cluster.fileFolder.folder, pFolder, sizeof(Folder));
 
                 //Write info in new cluster
-                writeHD((char *)&cluster, address, CLUSTER_SIZE);
+                writeHD((void *)&cluster, address, CLUSTER_SIZE);
 
                 g_masterBootRecord->numberOfClustersUsed++;
                 writeMasterBootRecordIntoHD();
@@ -1314,7 +1303,7 @@ int32_t modifyFileIntoHD(File *pFile)
             memcpy(&cluster.fileFolder.file, pFile, sizeof(File));
 
             //Write info into hard drive
-            writeHD((char *)&cluster, address, CLUSTER_SIZE);
+            writeHD((void *)&cluster, address, CLUSTER_SIZE);
         }
     }
     else
@@ -1345,7 +1334,7 @@ int32_t modifyFolderIntoHD(Folder *pFolder)
             memcpy(&cluster.fileFolder.folder, pFolder, sizeof(Folder));
 
             //Write info into hard drive
-            writeHD((char *)&cluster, address, CLUSTER_SIZE);
+            writeHD((void *)&cluster, address, CLUSTER_SIZE);
         }
     }
     else
@@ -1356,7 +1345,7 @@ int32_t modifyFolderIntoHD(Folder *pFolder)
     return ret;
 }
 
-int32_t writeFileIntoHD(File *pFile, char * newData)
+int32_t writeFileIntoHD(File *pFile, const char * newData)
 {
     int32_t ret = SUCCESS;
 
@@ -1369,9 +1358,9 @@ int32_t writeFileIntoHD(File *pFile, char * newData)
 
         if (dataSector != NULL_SECTOR)
         {
-            pFile->diskInfo.dataSector = dataSector;
-            pFile->diskInfo.dataSize = strlen(newData);
-            modifyFileIntoHD(pFile);
+           pFile->diskInfo.dataSector = dataSector;
+           pFile->diskInfo.dataSize = strlen(newData);
+           modifyFileIntoHD(pFile);
         }
     }
     else

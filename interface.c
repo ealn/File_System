@@ -78,7 +78,7 @@ char *  readDataFromFile(File *pFile)
     return ret;
 }
 
-int32_t writeDataIntoFile(File *pFile, char *newInfo)
+int32_t writeDataIntoFile(File *pFile, const char *newInfo)
 {
     int32_t ret = SUCCESS;
 

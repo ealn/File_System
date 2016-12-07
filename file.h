@@ -29,6 +29,8 @@ int32_t updateFileDate(File *pFile, char *newModDate);
 int32_t updateFileOwner(File *pFile, char *newOwner);
 int32_t updateFilePermissions(File *pFile, uint16_t newPermissions);
 int32_t copyFiles(File *srcFile, Folder *dstFolder);
+char * readFile(Folder *parent, char *pName);
+int32_t writeFile(Folder *parent, char *pName, const char *input);
 
 #if (defined(_cplusplus) || defined(__cplusplus))
 } // extern "C"

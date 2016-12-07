@@ -87,69 +87,7 @@ void printFileInfo(File *pFile, bool showDetails)
     }
 }
 
-int32_t openFile(Folder *parent, char *pName)
-{
-    int32_t ret = SUCCESS;
-    File   *pFile = NULL;
-
-    if (parent != NULL
-        && pName != NULL)
-    {
-        ret = searchFileOrFolderIntoPool(parent, pName, &pFile, NULL, false);
-
-        if (pFile != NULL)
-        {
-            /* TODO
-            if (!pFile->is_opened)
-            {
-                pFile->is_opened = true; 
-            }
-            else
-            {
-                ret = FILE_IS_ALREADY_OPENED;
-            }*/
-        }
-    }
-    else
-    {
-        ret = FAIL;
-    }
-
-    return ret; 
-}
-
-int32_t closeFile(Folder *parent, char *pName)
-{
-    int32_t ret = SUCCESS;
-    File   *pFile = NULL;
-
-    if (parent != NULL
-        && pName != NULL)
-    {
-        ret = searchFileOrFolderIntoPool(parent, pName, &pFile, NULL, false);
-
-        if (pFile != NULL)
-        {
-            /* TODO:
-            if (pFile->is_opened)
-            {
-                pFile->is_opened = false; 
-            }
-            else
-            {
-                ret = FILE_IS_ALREADY_CLOSED;
-            }*/
-        }
-    }
-    else
-    {
-        ret = FAIL;
-    }
-
-    return ret; 
-}
-
-int32_t writeFile(Folder *parent, char *pName, char *input)
+int32_t writeFile(Folder *parent, char *pName, const char *input)
 {
     int32_t ret = SUCCESS;
     File   *pFile = NULL;
@@ -160,6 +98,7 @@ int32_t writeFile(Folder *parent, char *pName, char *input)
     {
         uint32_t index = 0;
 
+        //TODO check permissions and owner
         ret = searchFileOrFolderIntoPool(parent, pName, &pFile, NULL, false);
 
         if (ret == SUCCESS
@@ -195,62 +134,6 @@ char * readFile(Folder *parent, char *pName)
     }
 
     return output; 
-}
-
-int32_t tellFile(Folder *parent, char *pName, uint32_t *output)
-{
-    int32_t ret = SUCCESS;
-    File   *pFile = NULL;
-
-    if (parent != NULL
-        && pName != NULL
-        && output != NULL)
-    {
-        ret = searchFileOrFolderIntoPool(parent, pName, &pFile, NULL, false);
-
-        if (pFile != NULL)
-        {
-            /*TODO
-            *output = pFile->r_point;*/
-        }
-    }
-    else
-    {
-        ret = FAIL;
-    }
-
-    return ret; 
-}
-
-int32_t seekFile(Folder *parent, char *pName, uint32_t newPoint)
-{
-    int32_t ret = SUCCESS;
-    File   *pFile = NULL;
-
-    if (parent != NULL
-        && pName != NULL)
-    {
-        ret = searchFileOrFolderIntoPool(parent, pName, &pFile, NULL, false);
-
-        if (pFile != NULL)
-        {
-            /*TODO
-            if (newPoint < pFile->size)
-            {
-                pFile->r_point = newPoint;
-            }
-            else
-            {
-                ret = FAIL;
-            }*/
-        }
-    }
-    else
-    {
-        ret = FAIL;
-    }
-
-    return ret; 
 }
 
 int32_t updateFileDate(File *pFile, char *newModDate)
@@ -336,11 +219,14 @@ int32_t copyFiles(File *srcFile, Folder *dstFolder)
                                 srcFile->date,
                                 NULL);
 
-        data = readDataFromFile(srcFile);
-
-        if (data != NULL)
+        if (newFile != NULL)
         {
-            ret = writeDataIntoFile(newFile, data);
+            data = readDataFromFile(srcFile); 
+
+            if (data != NULL)
+            {
+                ret = writeDataIntoFile(newFile, data);
+            }
         }
     }
 
