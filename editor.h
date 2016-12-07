@@ -14,7 +14,7 @@
  *          Ricardo Isaac Gonzalez Ordaz
  *          Victor Antonio Morales Carrillo
  *
- * Porpuse: APIs for the editor
+ * Porpuse: Header for the Text Editor
  */
 
 

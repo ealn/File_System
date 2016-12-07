@@ -14,7 +14,7 @@
  *          Ricardo Isaac Gonzalez Ordaz
  *          Victor Antonio Morales Carrillo
  *
- * Porpuse: Implementation of methods for the editor
+ * Porpuse: Text Editor
  */
 
 #include "editor.h"
