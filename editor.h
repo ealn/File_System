@@ -1,26 +1,35 @@
 /*
- * Editor.h
+ * Copyright (c) 2016 by Efrain Adrian Luna Nevarez
+ *                       Emmanuel Salcido Maldonado
+ *                       Jesus Eduardo Silva Padilla
+ *                       Efrain Arrambide Barron
+ *                       Ricardo Isaac Gonzalez Ordaz
+ *                       Victor Antonio Morales Carrillo
+ * All Rights Reserved
  *
- *  Created on: Dec 3, 2016
- *      Author: earrambi
+ * Authors: Efrain Adrian Luna Nevarez
+ *          Emmanuel Salcido Maldonado
+ *          Jesus Eduardo Silva Padilla
+ *          Efrain Arrambide Barron
+ *          Ricardo Isaac Gonzalez Ordaz
+ *          Victor Antonio Morales Carrillo
+ *
+ * Porpuse: APIs for the editor
  */
 
-#ifndef EDITOR_H_
 
-#define EDITOR_H_
-#include <stdint.h>
-#include <stdio.h>
-#include <stddef.h>
-#include <string.h>
-#include <stdbool.h>
-#include <malloc.h>
-#include <stdarg.h>
+#ifndef __EDITOR_H__
+#define __EDITOR_H__
 
-typedef uint32_t uint32;
+#if (defined(_cplusplus) || defined(__cplusplus))
+extern "C" {
+#endif
 
 char* openEditor(const char *fileStr);
 
-char *finalStr[1000];
+#if (defined(_cplusplus) || defined(__cplusplus))
+} // extern "C"
+#endif
 
+#endif // !defined(__EDITOR_H__)
 
-#endif /* EDITOR_H */

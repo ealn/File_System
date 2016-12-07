@@ -4,6 +4,7 @@
  *                       Jesus Eduardo Silva Padilla
  *                       Efrain Arrambide Barron
  *                       Ricardo Isaac Gonzalez Ordaz
+ *                       Victor Antonio Morales Carrillo
  * All Rights Reserved
  *
  * Authors: Efrain Adrian Luna Nevarez
@@ -11,6 +12,7 @@
  *          Jesus Eduardo Silva Padilla
  *          Efrain Arrambide Barron
  *          Ricardo Isaac Gonzalez Ordaz
+ *          Victor Antonio Morales Carrillo
  *
  * Porpuse: Implementation of methods to handle the file system
  */
@@ -435,14 +437,14 @@ bool validatePermissions(uint16_t permissions)
 
     if (isCurrentUserRoot())
     {
-        if (permissions | (WRITE_ONLY << 4))
+        if (permissions & (WRITE_ONLY << 4))
         {
             ret = true;
         }
     }
     else
     {
-        if (permissions | WRITE_ONLY)
+        if (permissions & WRITE_ONLY)
         {
             ret = true;
         }

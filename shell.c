@@ -4,6 +4,7 @@
  *                       Jesus Eduardo Silva Padilla
  *                       Efrain Arrambide Barron
  *                       Ricardo Isaac Gonzalez Ordaz
+ *                       Victor Antonio Morales Carrillo
  * All Rights Reserved
  *
  * Authors: Efrain Adrian Luna Nevarez
@@ -11,6 +12,7 @@
  *          Jesus Eduardo Silva Padilla
  *          Efrain Arrambide Barron
  *          Ricardo Isaac Gonzalez Ordaz
+ *          Victor Antonio Morales Carrillo
  *
  * Porpuse: Shell implementation
  */
@@ -663,7 +665,7 @@ static void printCleanHelp(bool showFlagsDetails)
 static void printCatHelp(bool showFlagsDetails)
 {
     printf("\ncat    : show file information\n");
-    printf("\nSintax:\n\ncat <flags[optionals]> <file>\n\n");
+    printf("\nSintax:\n\ncat <flags[optionals]> <path>\n\n");
 
     if (showFlagsDetails)
     {
@@ -1660,7 +1662,7 @@ static int32_t runEdit(ParamList *pParamList)
                     {
                         data = readFile(parentFolder, pName);
 
-                        //TODO
+                        printf("\n");
                         newData = openEditor(data);
 
                         if (newData != NULL)
@@ -1737,7 +1739,9 @@ static int32_t runCat(ParamList *pParamList)
 
                         if (data != NULL)
                         {
+                            printf("\n");
                             printf(data);
+                            printf("\n");
                             MEMFREE(data);
                         }
                     }

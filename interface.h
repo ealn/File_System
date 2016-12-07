@@ -4,6 +4,7 @@
  *                       Jesus Eduardo Silva Padilla
  *                       Efrain Arrambide Barron
  *                       Ricardo Isaac Gonzalez Ordaz
+ *                       Victor Antonio Morales Carrillo
  * All Rights Reserved
  *
  * Authors: Efrain Adrian Luna Nevarez
@@ -11,6 +12,7 @@
  *          Jesus Eduardo Silva Padilla
  *          Efrain Arrambide Barron
  *          Ricardo Isaac Gonzalez Ordaz
+ *          Victor Antonio Morales Carrillo
  *
  * Porpuse: Header that contains the interface between the file system and the hard drive
  */

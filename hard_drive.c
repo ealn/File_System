@@ -4,6 +4,7 @@
  *                       Jesus Eduardo Silva Padilla
  *                       Efrain Arrambide Barron
  *                       Ricardo Isaac Gonzalez Ordaz
+ *                       Victor Antonio Morales Carrillo
  * All Rights Reserved
  *
  * Authors: Efrain Adrian Luna Nevarez
@@ -11,6 +12,7 @@
  *          Jesus Eduardo Silva Padilla
  *          Efrain Arrambide Barron
  *          Ricardo Isaac Gonzalez Ordaz
+ *          Victor Antonio Morales Carrillo
  *
  * Porpuse: Implementation of hard drive
  */
@@ -995,9 +997,7 @@ int32_t initHardDrive(void)
 
     if (g_masterBootRecord != NULL)
     {
-        //TODO: Quitar el false del if
         if (existHardDrive())
-        //if (false)
         {
             setSetInfoToHD(false);
             ret = openHardDriveFile(false);

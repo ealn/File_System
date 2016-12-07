@@ -1,10 +1,35 @@
 /*
- * Editor.c
+ * Copyright (c) 2016 by Efrain Adrian Luna Nevarez
+ *                       Emmanuel Salcido Maldonado
+ *                       Jesus Eduardo Silva Padilla
+ *                       Efrain Arrambide Barron
+ *                       Ricardo Isaac Gonzalez Ordaz
+ *                       Victor Antonio Morales Carrillo
+ * All Rights Reserved
  *
- *  Created on: Dec 3, 2016
- *      Author: earrambi
+ * Authors: Efrain Adrian Luna Nevarez
+ *          Emmanuel Salcido Maldonado
+ *          Jesus Eduardo Silva Padilla
+ *          Efrain Arrambide Barron
+ *          Ricardo Isaac Gonzalez Ordaz
+ *          Victor Antonio Morales Carrillo
+ *
+ * Porpuse: Implementation of methods for the editor
  */
+
 #include "editor.h"
+
+#include <stdint.h>
+#include <stdio.h>
+#include <stddef.h>
+#include <string.h>
+#include <stdbool.h>
+#include <malloc.h>
+#include <stdarg.h>
+#include <string.h>
+
+typedef uint32_t uint32;
+char *finalStr[1000];
 
 char* openEditor(const char *fileStr)
 {
@@ -67,10 +92,10 @@ char* openEditor(const char *fileStr)
 				j = atoi(num);
 
 				fgets(lineData, 300, stdin);
-				linLen = strcspn(&lineData, "\n");
+				linLen = strcspn(lineData, "\n");
 				free(finalStr[j]);
 				finalStr[j] = (char *)malloc(linLen + 1);
-				strncpy(finalStr[j], &lineData, linLen);
+				strncpy(finalStr[j], lineData, linLen);
 				*(finalStr[j] + linLen) = '\0';
 				memset(&lineData, '\0',300);
 				int k;
