@@ -26,6 +26,7 @@
 #include "file.h"
 #include "folder.h"
 #include "f_pool.h"
+#include "editor.h"
 
 #define PROMPT_SIZE      100
 #define SUPER_USER       "su"
@@ -1660,7 +1661,7 @@ static int32_t runEdit(ParamList *pParamList)
                         data = readFile(parentFolder, pName);
 
                         //TODO
-                        //newData = editor(data);
+                        newData = openEditor(data);
 
                         if (newData != NULL)
                         {
