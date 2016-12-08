@@ -53,8 +53,8 @@ char* openEditor(const char *fileStr)
 			finalStr[i] = (char*)malloc(len + 1);
 			strncpy(finalStr[i],fileStr, len);
 
-			len = strcspn(fileStr, "\n");
-			*(finalStr[i] + len) = '\0';
+			*(finalStr[i] + len) = ' ';
+			*(finalStr[i] + len+1) = '\0';
 			printf("%d   %s \n",i, finalStr[i]);
 			if ((end - fileStr) < fileLen) {
 				fileStr = end + 1;
@@ -96,7 +96,8 @@ char* openEditor(const char *fileStr)
 				free(finalStr[j]);
 				finalStr[j] = (char *)malloc(linLen + 1);
 				strncpy(finalStr[j], lineData, linLen);
-				*(finalStr[j] + linLen) = '\0';
+				*(finalStr[j] + linLen) = ' ';
+				*(finalStr[j] + linLen +1) = '\0';
 				memset(&lineData, '\0',300);
 				int k;
 				for (k = 0; k < i; k++)
